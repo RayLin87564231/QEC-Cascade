@@ -1,0 +1,83 @@
+{
+  "inputs": [
+    "results/surface_d5_v5.json",
+    "results/surface_d7_v5.json",
+    "results/surface_d9_v5.json"
+  ],
+  "select": "low",
+  "weighted": true,
+  "min_errors": 100,
+  "fits": {
+    "Cascade": {
+      "decoder": "Cascade",
+      "p": 0.001,
+      "distances": [
+        5,
+        7,
+        9
+      ],
+      "rounds": [
+        5,
+        7,
+        9
+      ],
+      "n_failures": [
+        200,
+        200,
+        200
+      ],
+      "n_total": [
+        2908160,
+        41664512,
+        381919232
+      ],
+      "p_l_per_cycle": [
+        1.3755158205175366e-05,
+        6.857525687298249e-07,
+        5.81856861581187e-08
+      ],
+      "Lambda": 15.375339525012441,
+      "Lambda_lo": 13.82610422589176,
+      "Lambda_hi": 16.851025062043394,
+      "all_sufficient": true
+    },
+    "MWPM": {
+      "decoder": "MWPM",
+      "p": 0.001,
+      "distances": [
+        5,
+        7,
+        9
+      ],
+      "rounds": [
+        5,
+        7,
+        9
+      ],
+      "n_failures": [
+        409,
+        742,
+        851
+      ],
+      "n_total": [
+        2908160,
+        41664512,
+        381919232
+      ],
+      "p_l_per_cycle": [
+        2.8130916095991942e-05,
+        2.544170398632861e-06,
+        2.475804696810968e-07
+      ],
+      "Lambda": 10.604554279816282,
+      "Lambda_lo": 10.013223553977786,
+      "Lambda_hi": 11.22225918646709,
+      "all_sufficient": true
+    }
+  },
+  "verdict": {
+    "cascade_beats_mwpm": true,
+    "non_overlapping_ci": true,
+    "lambda_ratio": 1.4498807888867546
+  }
+}

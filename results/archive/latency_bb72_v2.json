@@ -1,0 +1,39 @@
+{
+  "code": "bb_72_12_6",
+  "rounds": 6,
+  "hidden": 256,
+  "blocks": 8,
+  "ckpt": "checkpoints/bb_72_12_6_v2_bb72/best.pt",
+  "weights": "ema",
+  "use_bf16": true,
+  "results": [
+    {
+      "batch": 1,
+      "us_per_forward": 9593.890380859375,
+      "us_per_shot": 9593.890380859375,
+      "us_per_cycle": 1598.9817301432292,
+      "shots_per_s": 104.23300249449221
+    },
+    {
+      "batch": 8,
+      "us_per_forward": 9755.872192382812,
+      "us_per_shot": 1219.4840240478516,
+      "us_per_cycle": 203.2473373413086,
+      "shots_per_s": 820.0189426678055
+    },
+    {
+      "batch": 64,
+      "us_per_forward": 12667.95654296875,
+      "us_per_shot": 197.93682098388672,
+      "us_per_cycle": 32.98947016398112,
+      "shots_per_s": 5052.117110041927
+    },
+    {
+      "batch": 512,
+      "us_per_forward": 167767.734375,
+      "us_per_shot": 327.6713562011719,
+      "us_per_cycle": 54.61189270019531,
+      "shots_per_s": 3051.838316273382
+    }
+  ]
+}

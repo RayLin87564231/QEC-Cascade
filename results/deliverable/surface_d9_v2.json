@@ -1,0 +1,188 @@
+{
+  "code": "surface_d9",
+  "rounds": 9,
+  "hidden": 128,
+  "blocks": 10,
+  "kernel": 3,
+  "ckpt": "checkpoints/surface_d9_v2_d9/best.pt",
+  "weights": "ema",
+  "shots": 200000,
+  "min_errors": 100,
+  "sweep": [
+    {
+      "p": 0.001,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 1,
+          "n_total": 200000,
+          "p_block": 5e-06,
+          "p_l_per_cycle": 5.555580246952019e-07,
+          "p_l_lo": 9.80668121153272e-08,
+          "p_l_hi": 3.147283504978393e-06,
+          "sufficient": false
+        },
+        "MWPM": {
+          "name": "MWPM",
+          "n_failures": 1,
+          "n_total": 200000,
+          "p_block": 5e-06,
+          "p_l_per_cycle": 5.555580246952019e-07,
+          "p_l_lo": 9.80668121153272e-08,
+          "p_l_hi": 3.147283504978393e-06,
+          "sufficient": false
+        }
+      }
+    },
+    {
+      "p": 0.002,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 9,
+          "n_total": 200000,
+          "p_block": 4.5e-05,
+          "p_l_per_cycle": 5.000200011318068e-06,
+          "p_l_lo": 2.6306414377397225e-06,
+          "p_l_hi": 9.504125671522257e-06,
+          "sufficient": false
+        },
+        "MWPM": {
+          "name": "MWPM",
+          "n_failures": 11,
+          "n_total": 200000,
+          "p_block": 5.5e-05,
+          "p_l_per_cycle": 6.111409897258113e-06,
+          "p_l_lo": 3.4125523035721805e-06,
+          "p_l_hi": 1.0944667787338158e-05,
+          "sufficient": false
+        }
+      }
+    },
+    {
+      "p": 0.003,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 66,
+          "n_total": 200000,
+          "p_block": 0.00033,
+          "p_l_per_cycle": 3.6677426693887405e-05,
+          "p_l_lo": 2.883101695405621e-05,
+          "p_l_hi": 4.665915079327121e-05,
+          "sufficient": false
+        },
+        "MWPM": {
+          "name": "MWPM",
+          "n_failures": 98,
+          "n_total": 200000,
+          "p_block": 0.00049,
+          "p_l_per_cycle": 5.4468172667243575e-05,
+          "p_l_lo": 4.4697164545692836e-05,
+          "p_l_hi": 6.637502767264936e-05,
+          "sufficient": false
+        }
+      }
+    },
+    {
+      "p": 0.004,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 299,
+          "n_total": 200000,
+          "p_block": 0.001495,
+          "p_l_per_cycle": 0.0001663322707899928,
+          "p_l_lo": 0.00014850687833117826,
+          "p_l_hi": 0.0001862968669704146,
+          "sufficient": true
+        },
+        "MWPM": {
+          "name": "MWPM",
+          "n_failures": 491,
+          "n_total": 200000,
+          "p_block": 0.002455,
+          "p_l_per_cycle": 0.00027337488629752826,
+          "p_l_lo": 0.00025021823582654923,
+          "p_l_hi": 0.00029867396633237453,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.005,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 1053,
+          "n_total": 200000,
+          "p_block": 0.005265,
+          "p_l_per_cycle": 0.0005877560907973645,
+          "p_l_lo": 0.0005532414141666275,
+          "p_l_hi": 0.0006244227491232213,
+          "sufficient": true
+        },
+        "MWPM": {
+          "name": "MWPM",
+          "n_failures": 1388,
+          "n_total": 200000,
+          "p_block": 0.00694,
+          "p_l_per_cycle": 0.0007759100029323673,
+          "p_l_lo": 0.0007360428131039098,
+          "p_l_hi": 0.000817934947350607,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.006,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 2886,
+          "n_total": 200000,
+          "p_block": 0.01443,
+          "p_l_per_cycle": 0.001624280420262747,
+          "p_l_lo": 0.0015657579247697617,
+          "p_l_hi": 0.001684987230074153,
+          "sufficient": true
+        },
+        "MWPM": {
+          "name": "MWPM",
+          "n_failures": 3191,
+          "n_total": 200000,
+          "p_block": 0.015955,
+          "p_l_per_cycle": 0.0017984367828899894,
+          "p_l_lo": 0.0017367201824242118,
+          "p_l_hi": 0.0018623432589852107,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.007,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 6260,
+          "n_total": 200000,
+          "p_block": 0.0313,
+          "p_l_per_cycle": 0.003578532313402105,
+          "p_l_lo": 0.0034898405581249015,
+          "p_l_hi": 0.003669472995445844,
+          "sufficient": true
+        },
+        "MWPM": {
+          "name": "MWPM",
+          "n_failures": 6281,
+          "n_total": 200000,
+          "p_block": 0.031405,
+          "p_l_per_cycle": 0.0035908902406837084,
+          "p_l_lo": 0.003502035154207772,
+          "p_l_hi": 0.0036819946782890023,
+          "sufficient": true
+        }
+      }
+    }
+  ]
+}

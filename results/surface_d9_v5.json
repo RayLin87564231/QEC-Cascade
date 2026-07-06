@@ -1,0 +1,164 @@
+{
+  "code": "surface_d9",
+  "rounds": 9,
+  "hidden": 512,
+  "blocks": 10,
+  "kernel": 3,
+  "ckpt": "checkpoints/surface_d9_v5_d9/best.pt",
+  "weights": "ema",
+  "shots": 400000000,
+  "target_failures": 200,
+  "min_errors": 100,
+  "sweep": [
+    {
+      "p": 0.001,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 200,
+          "n_total": 381919232,
+          "p_block": 5.236709315544497e-07,
+          "p_l_per_cycle": 5.81856861581187e-08,
+          "p_l_lo": 5.0661036588017794e-08,
+          "p_l_hi": 6.682796677148772e-08,
+          "sufficient": true
+        },
+        "MWPM": {
+          "name": "MWPM",
+          "n_failures": 851,
+          "n_total": 381919232,
+          "p_block": 2.2282198137641837e-06,
+          "p_l_per_cycle": 2.475804696810968e-07,
+          "p_l_lo": 2.314954680726622e-07,
+          "p_l_hi": 2.647831053304017e-07,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.0015,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 200,
+          "n_total": 47742976,
+          "p_block": 4.189097889498971e-06,
+          "p_l_per_cycle": 4.654570542328429e-07,
+          "p_l_lo": 4.052634535733901e-07,
+          "p_l_hi": 5.345911789356173e-07,
+          "sufficient": true
+        },
+        "MWPM": {
+          "name": "MWPM",
+          "n_failures": 794,
+          "n_total": 47742976,
+          "p_block": 1.6630718621310914e-05,
+          "p_l_per_cycle": 1.8478849417857823e-06,
+          "p_l_lo": 1.723741939740897e-06,
+          "p_l_hi": 1.9809686409022476e-06,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.002,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 200,
+          "n_total": 11599872,
+          "p_block": 1.7241569562146893e-05,
+          "p_l_per_cycle": 1.9157593121876815e-06,
+          "p_l_lo": 1.6680092673748703e-06,
+          "p_l_hi": 2.2003076834420376e-06,
+          "sufficient": true
+        },
+        "MWPM": {
+          "name": "MWPM",
+          "n_failures": 799,
+          "n_total": 11599872,
+          "p_block": 6.888007040077683e-05,
+          "p_l_per_cycle": 7.653809785346244e-06,
+          "p_l_lo": 7.141163575474785e-06,
+          "p_l_hi": 8.203257278349696e-06,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.003,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 201,
+          "n_total": 1196032,
+          "p_block": 0.00016805570419520547,
+          "p_l_per_cycle": 1.867564601654159e-05,
+          "p_l_lo": 1.6265938471593522e-05,
+          "p_l_hi": 2.144233057832512e-05,
+          "sufficient": true
+        },
+        "MWPM": {
+          "name": "MWPM",
+          "n_failures": 647,
+          "n_total": 1196032,
+          "p_block": 0.0005409554259417808,
+          "p_l_per_cycle": 6.0135080143797204e-05,
+          "p_l_lo": 5.5675515839404e-05,
+          "p_l_hi": 6.495182892984896e-05,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.004,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 206,
+          "n_total": 262144,
+          "p_block": 0.00078582763671875,
+          "p_l_per_cycle": 8.73752324104804e-05,
+          "p_l_lo": 7.622699119036458e-05,
+          "p_l_hi": 0.00010015374853139525,
+          "sufficient": true
+        },
+        "MWPM": {
+          "name": "MWPM",
+          "n_failures": 573,
+          "n_total": 262144,
+          "p_block": 0.002185821533203125,
+          "p_l_per_cycle": 0.00024334224526484372,
+          "p_l_lo": 0.0002242005352837695,
+          "p_l_hi": 0.0002641178085397988,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.005,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 215,
+          "n_total": 81920,
+          "p_block": 0.00262451171875,
+          "p_l_per_cycle": 0.00029229497250815584,
+          "p_l_lo": 0.00025571219983616666,
+          "p_l_hi": 0.0003341096661396148,
+          "sufficient": true
+        },
+        "MWPM": {
+          "name": "MWPM",
+          "n_failures": 553,
+          "n_total": 81920,
+          "p_block": 0.00675048828125,
+          "p_l_per_cycle": 0.0007545935398450831,
+          "p_l_lo": 0.0006941106283959719,
+          "p_l_hi": 0.0008203427905017491,
+          "sufficient": true
+        }
+      }
+    }
+  ]
+}

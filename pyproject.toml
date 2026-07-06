@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=80"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cascade"
+version = "0.1.0"
+description = "Reproduction of Cascade Neural Decoder (arXiv:2604.08358)"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.5",
+    "numpy",
+    "scipy",
+    "einops",
+    "omegaconf",
+    "stim",
+    "sinter",
+    "pymatching",
+    "stimbposd",
+    "lion-pytorch",
+    "muon-optimizer @ git+https://github.com/KellerJordan/Muon.git",
+    "tqdm",
+    "matplotlib",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "ipython"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"
+markers = [
+    "slow: tests that take more than a few seconds (off by default in CI)",
+]

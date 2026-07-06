@@ -1,0 +1,73 @@
+{
+  "code": "bb_72_12_6",
+  "rounds": 6,
+  "hidden": 256,
+  "blocks": 8,
+  "kernel": 3,
+  "ckpt": "checkpoints/bb_72_12_6_v2_bb72/best.pt",
+  "weights": "ema",
+  "shots": 200000,
+  "min_errors": 100,
+  "sweep": [
+    {
+      "p": 0.002,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 174335,
+          "n_total": 200000,
+          "p_block": 0.871675,
+          "p_l_per_cycle": 0.03050022139433123,
+          "p_l_lo": 0.030317323009196928,
+          "p_l_hi": 0.03068361062898506,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.003,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 186890,
+          "n_total": 200000,
+          "p_block": 0.93445,
+          "p_l_per_cycle": 0.04161205903243809,
+          "p_l_lo": 0.04132967721328612,
+          "p_l_hi": 0.041895251440801584,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.004,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 191281,
+          "n_total": 200000,
+          "p_block": 0.956405,
+          "p_l_per_cycle": 0.0487364438814436,
+          "p_l_lo": 0.048370337649762285,
+          "p_l_hi": 0.04910375593783978,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.005,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 193223,
+          "n_total": 200000,
+          "p_block": 0.966115,
+          "p_l_per_cycle": 0.05330485579115768,
+          "p_l_lo": 0.05287492180387626,
+          "p_l_hi": 0.05373638001946657,
+          "sufficient": true
+        }
+      }
+    }
+  ]
+}

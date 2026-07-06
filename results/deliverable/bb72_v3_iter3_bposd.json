@@ -1,0 +1,38 @@
+{
+  "code": "bb_72_12_6",
+  "rounds": 6,
+  "hidden": 256,
+  "blocks": 8,
+  "kernel": 3,
+  "ckpt": "checkpoints/bb_72_12_6_v3_bb72/best.pt",
+  "weights": "ema",
+  "shots": 200000,
+  "min_errors": 0,
+  "sweep": [
+    {
+      "p": 0.005,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 18006,
+          "n_total": 200000,
+          "p_block": 0.09003,
+          "p_l_per_cycle": 0.0013137910806324538,
+          "p_l_lo": 0.0012946774611073963,
+          "p_l_hi": 0.0013331743948057362,
+          "sufficient": true
+        },
+        "BP+OSD": {
+          "name": "BP+OSD",
+          "n_failures": 637,
+          "n_total": 2000,
+          "p_block": 0.3185,
+          "p_l_per_cycle": 0.005384526807185375,
+          "p_l_lo": 0.004973047042630685,
+          "p_l_hi": 0.005824025179427983,
+          "sufficient": true
+        }
+      }
+    }
+  ]
+}

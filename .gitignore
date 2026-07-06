@@ -1,0 +1,19 @@
+# environments / caches
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+.ipynb_checkpoints/
+
+# large training artifacts — live on the cluster, not in git
+checkpoints/
+.smoke_ckpt*/
+logs/
+*.pt
+
+# local edit backups
+*.backup-*
+
+# third-party clone with its own .git (see README "External code")
+external/BivariateBicycleCodes/

@@ -1,0 +1,46 @@
+{
+  "code": "surface_d7",
+  "rounds": 7,
+  "hidden": 128,
+  "blocks": 8,
+  "ckpt": "checkpoints/surface_d7_v2_d7/best.pt",
+  "weights": "ema",
+  "use_bf16": true,
+  "results": [
+    {
+      "batch": 1,
+      "us_per_forward": 2195.6240844726562,
+      "us_per_shot": 2195.6240844726562,
+      "us_per_cycle": 313.66058349609375,
+      "shots_per_s": 455.4513712397081
+    },
+    {
+      "batch": 8,
+      "us_per_forward": 2180.0135803222656,
+      "us_per_shot": 272.5016975402832,
+      "us_per_cycle": 38.92881393432617,
+      "shots_per_s": 3669.701910213505
+    },
+    {
+      "batch": 64,
+      "us_per_forward": 2198.199005126953,
+      "us_per_shot": 34.34685945510864,
+      "us_per_cycle": 4.906694207872663,
+      "shots_per_s": 29114.743410733092
+    },
+    {
+      "batch": 512,
+      "us_per_forward": 8721.77978515625,
+      "us_per_shot": 17.0347261428833,
+      "us_per_cycle": 2.4335323061261858,
+      "shots_per_s": 58703.61469930504
+    },
+    {
+      "batch": 4096,
+      "us_per_forward": 66201.6650390625,
+      "us_per_shot": 16.162515878677368,
+      "us_per_cycle": 2.3089308398110524,
+      "shots_per_s": 61871.55561092221
+    }
+  ]
+}
