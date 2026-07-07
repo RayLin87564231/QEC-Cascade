@@ -1,0 +1,39 @@
+{
+  "code": "bb_144_12_12",
+  "rounds": 12,
+  "hidden": 256,
+  "blocks": 12,
+  "kernel": 3,
+  "ckpt": "checkpoints/bb_144_12_12_v6_bb144_mw/best.pt",
+  "weights": "live",
+  "shots": 480,
+  "target_failures": null,
+  "min_errors": 0,
+  "sweep": [
+    {
+      "p": 0.003,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 202,
+          "n_total": 480,
+          "p_block": 0.42083333333333334,
+          "p_l_per_cycle": 0.0038682171268457632,
+          "p_l_lo": 0.0033477989237027383,
+          "p_l_hi": 0.004449486402698821,
+          "sufficient": true
+        },
+        "BP+OSD": {
+          "name": "BP+OSD",
+          "n_failures": 24,
+          "n_total": 480,
+          "p_block": 0.05,
+          "p_l_per_cycle": 0.00035684059194945883,
+          "p_l_lo": 0.0002392602949423117,
+          "p_l_hi": 0.0005301975477068899,
+          "sufficient": true
+        }
+      }
+    }
+  ]
+}

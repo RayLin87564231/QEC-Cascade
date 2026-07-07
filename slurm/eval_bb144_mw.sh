@@ -7,15 +7,19 @@
 #   gotcha: EMA_DECAY=0.999, warmup 5k steps — best.pt at 40k should have a
 #   warm EMA, so --prefer auto is correct; if best was saved pre-5k, rerun
 #   with --prefer live).
-# ⚠ Size SHOTS_CAP before submitting: measure Cascade eval throughput from
-#   the baseline job log (results/bb144_mw_bposd_baseline.json run), then
-#   pick a cap that fits the wall time at p=0.002.
+# SHOTS_CAP sizing (done 2026-07-07, throughput ~180 shots/s @ batch 128
+#   from smoke 166164: 2000 shots ≈ 11 s): cap 1e7 → worst case p=0.002
+#   runs the full cap in ~15.4 h; the other 4 points hit target-failures
+#   early at high p (minutes) → total ≲17 h < 24 h wall. The cap only
+#   binds if Cascade p_block@0.002 < 2e-5 (>100× better than BP+OSD's
+#   0.0033) — old 2e6 default would have truncated exactly when the
+#   result is most interesting.
 #
 # Self-sizing target-failures MC over the paper headline range. BP+OSD
 # baseline comes from eval_bb144_mw_bposd.sh (separate JSON) — merge in the
 # paper table. Per-head numbers are NOT comparable to v2/v3 runs (GF(2)
 # basis change); block-level P_L is basis-invariant.
-#   sbatch slurm/eval_bb144_mw.sh [TARGET_FAILURES=200] [SHOTS_CAP=2000000]
+#   sbatch slurm/eval_bb144_mw.sh [TARGET_FAILURES=200] [SHOTS_CAP=10000000]
 # =============================================================================
 
 #SBATCH --job-name=eval_bb144_mw
@@ -37,7 +41,7 @@ cd "$WORKDIR"
 mkdir -p logs results
 
 TARGET_FAILURES="${1:-200}"
-SHOTS_CAP="${2:-2000000}"
+SHOTS_CAP="${2:-10000000}"
 
 CKPT="checkpoints/bb_144_12_12_v6_bb144_mw/best.pt"
 if [ ! -f "$CKPT" ]; then

@@ -1,0 +1,46 @@
+{
+  "code": "bb_144_12_12",
+  "p": 0.003,
+  "k": 12,
+  "rounds": 12,
+  "decoder": "BP+OSD",
+  "merged_from": [
+    {
+      "file": "bb144_mw_bposd_p0.003.json",
+      "n_failures": 47,
+      "n_total": 1200
+    },
+    {
+      "file": "bb144_mw_bposd_p0.003_topup_w0.json",
+      "n_failures": 17,
+      "n_total": 480
+    },
+    {
+      "file": "bb144_mw_bposd_p0.003_topup_w1.json",
+      "n_failures": 8,
+      "n_total": 480
+    },
+    {
+      "file": "bb144_mw_bposd_p0.003_topup_w2.json",
+      "n_failures": 20,
+      "n_total": 480
+    },
+    {
+      "file": "bb144_mw_bposd_p0.003_topup_w3.json",
+      "n_failures": 24,
+      "n_total": 480
+    },
+    {
+      "file": "bb144_mw_bposd_p0.003_topup_w4.json",
+      "n_failures": 14,
+      "n_total": 480
+    }
+  ],
+  "n_failures": 130,
+  "n_total": 3600,
+  "p_block": 0.03611111111111111,
+  "p_l_per_cycle": 0.0002557386579572496,
+  "p_l_lo": 0.00021529388347801826,
+  "p_l_hi": 0.000303628709743875,
+  "sufficient": true
+}
