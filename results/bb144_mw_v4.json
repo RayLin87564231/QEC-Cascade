@@ -1,0 +1,89 @@
+{
+  "code": "bb_144_12_12",
+  "rounds": 12,
+  "hidden": 256,
+  "blocks": 12,
+  "kernel": 3,
+  "ckpt": "checkpoints/bb_144_12_12_v6_bb144_mw/best.pt",
+  "weights": "ema",
+  "shots": 10000000,
+  "target_failures": 200,
+  "min_errors": 100,
+  "sweep": [
+    {
+      "p": 0.002,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 206,
+          "n_total": 512,
+          "p_block": 0.40234375,
+          "p_l_per_cycle": 0.0036413708106078357,
+          "p_l_lo": 0.0031574990529511515,
+          "p_l_hi": 0.004181927943501695,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.003,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 206,
+          "n_total": 512,
+          "p_block": 0.40234375,
+          "p_l_per_cycle": 0.0036413708106078357,
+          "p_l_lo": 0.0031574990529511515,
+          "p_l_hi": 0.004181927943501695,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.004,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 212,
+          "n_total": 512,
+          "p_block": 0.4140625,
+          "p_l_per_cycle": 0.0037842533527047695,
+          "p_l_lo": 0.0032871651320574014,
+          "p_l_hi": 0.0043382621847068426,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.005,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 247,
+          "n_total": 512,
+          "p_block": 0.482421875,
+          "p_l_per_cycle": 0.004684325022209723,
+          "p_l_lo": 0.004104391018546372,
+          "p_l_hi": 0.005322767448757315,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.0055,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 262,
+          "n_total": 512,
+          "p_block": 0.51171875,
+          "p_l_per_cycle": 0.00511012405280481,
+          "p_l_lo": 0.0044909363130660185,
+          "p_l_hi": 0.005788640070419404,
+          "sufficient": true
+        }
+      }
+    }
+  ]
+}
