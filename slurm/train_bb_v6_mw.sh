@@ -36,7 +36,7 @@
 
 set -euo pipefail
 
-WORKDIR="/work/leo07010/Ray/QEC/cascade"
+WORKDIR="/work/u2467370/QEC/cascade"
 cd "$WORKDIR"
 mkdir -p logs
 
@@ -112,6 +112,7 @@ python scripts/14_train_bb_v3.py \
     --eval-batch "$EVAL_BATCH" \
     --final-shots 200000 \
     --p-eval ${P_EVAL[@]} \
+    --out "${WORKDIR}/checkpoints" \
     --tag "$TAG"
 
 echo "========================================"
