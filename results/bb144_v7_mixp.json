@@ -1,0 +1,89 @@
+{
+  "code": "bb_144_12_12",
+  "rounds": 12,
+  "hidden": 256,
+  "blocks": 12,
+  "kernel": 3,
+  "ckpt": "checkpoints/bb_144_12_12_v7_bb144_mixp/best.pt",
+  "weights": "ema",
+  "shots": 10000000,
+  "target_failures": 200,
+  "min_errors": 100,
+  "sweep": [
+    {
+      "p": 0.002,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 200,
+          "n_total": 527232,
+          "p_block": 0.0003793396455450352,
+          "p_l_per_cycle": 2.634837580284266e-06,
+          "p_l_lo": 2.2940891785672157e-06,
+          "p_l_hi": 3.026188171162403e-06,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.003,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 200,
+          "n_total": 34688,
+          "p_block": 0.005765682656826568,
+          "p_l_per_cycle": 4.016340210416525e-05,
+          "p_l_lo": 3.4967600384849806e-05,
+          "p_l_hi": 4.612886140009653e-05,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.004,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 200,
+          "n_total": 4736,
+          "p_block": 0.04222972972972973,
+          "p_l_per_cycle": 0.00030008478577131514,
+          "p_l_lo": 0.00026117357329585866,
+          "p_l_hi": 0.0003446612478323341,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.005,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 211,
+          "n_total": 1024,
+          "p_block": 0.2060546875,
+          "p_l_per_cycle": 0.0016154585961198897,
+          "p_l_lo": 0.0014084468972374586,
+          "p_l_hi": 0.0018494041765385605,
+          "sufficient": true
+        }
+      }
+    },
+    {
+      "p": 0.0055,
+      "results": {
+        "Cascade": {
+          "name": "Cascade",
+          "n_failures": 224,
+          "n_total": 640,
+          "p_block": 0.35,
+          "p_l_per_cycle": 0.0030379831149162095,
+          "p_l_lo": 0.0026530055326229873,
+          "p_l_hi": 0.003467582290958393,
+          "sufficient": true
+        }
+      }
+    }
+  ]
+}
