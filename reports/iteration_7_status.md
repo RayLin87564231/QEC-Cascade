@@ -38,9 +38,10 @@ criteria" below).
    exists at this p) measured `p_block=0.00002` (3/200000,
    `logs/cascade_bb_v7mixp_188710.out`, quoted in
    `/home/u2467370/.claude/scratch/v7_completion_check.md` §1).
-4. **Iter-7 plan acceptance criteria: 1-4 PASS, 5 PARTIAL** (`reports/iteration_7_plan.md`
-   §7; a v7 zero-syndrome re-probe analogous to v6's job 185295 was not run —
-   criterion 5 rests on std-positivity evidence only); see the itemized check below. No dead-head regression: all 12 per-logical std
+4. **All five iter-7 plan acceptance criteria PASS** (`reports/iteration_7_plan.md`
+   §7; criterion 5 was graded PARTIAL at closure and upgraded to PASS after the
+   post-closure zero-syndrome probe, dev job 204190, 2026-07-22); see the
+   itemized check below. No dead-head regression: all 12 per-logical std
    stayed in the 5.9-7.5 range through step 40000
    (`logs/cascade_bb_v7mixp_188710.out`).
 5. **Legacy/caveats:** all iter-7 code, checkpoints and results are uncommitted
@@ -131,14 +132,16 @@ points depends on which metric is quoted. p_block-based ratios, for reference:
    §2, independently confirmed by grepping `logs/cascade_bb_v7mixp_188710.out`
    directly (steps 37000/38000/39000/40000 all show `ema p_block=0.00000` except
    step 39000 at 0.00195).
-5. **No dead-head / bias regression: PARTIAL (PASS on std-positivity; zero-syndrome
-   re-probe not run).** All 12
+5. **No dead-head / bias regression: PASS.** Two observations: (a) all 12
    per-logical std values stayed strongly positive through the final segment
    (step 37000: 6.18-6.96; step 40000: 5.87-6.84;
-   `logs/cascade_bb_v7mixp_188710.out`). A dedicated zero-syndrome re-probe
-   (analogous to v6's dev job 185295) was not found in the available logs for
-   v7 and is **not claimed here** — the std-positivity evidence is what is
-   directly observed.
+   `logs/cascade_bb_v7mixp_188710.out`); (b) the dedicated zero-syndrome probe
+   (analogous to v6's dev job 185295) ran post-closure as dev job 204190
+   (2026-07-22, `scripts/33_probe_bb144_zero_v7.py`, `best.pt`@36000/EMA):
+   all 12 head sigmoids ≤0.002 on a 64-row all-zero-syndrome batch — **0/12
+   heads fire**. Bonus from the same probe: p=0.0005 (below the p_min=0.001
+   training range) decoded with p_block=0.00000 (0/64 shots) — v6 measured
+   0.42 at this point.
 
 ## Training status (v7, TAG `v7_bb144_mixp`) — COMPLETE @ 40k steps
 
@@ -190,6 +193,15 @@ which ratio they're quoting.
 - All iter-7 work (code diffs, new SLURM scripts, checkpoints, `results/bb144_v7_mixp.json`,
   this report) is uncommitted as of 2026-07-22 — nothing here has been committed
   to git, pending user approval.
-- All runs went through SLURM (dev for the smoke, job 188692) — never the login
-  node; this report itself was compiled read-only from the login node with no
-  compute performed.
+- Data-integrity note on the v6 reference file (discovered during the 2026-07-22
+  adversarial verification): `results/bb144_mw_v4.json`'s p=0.002 and p=0.003
+  entries are byte-identical (206/512, identical p_l to 16 digits), i.e. the
+  p=0.003 row appears to be a duplicated record rather than an independent
+  measurement. Probe job 204190 ruled out unseeded-stim-sampler determinism as
+  a mechanism (fresh samplers produce different events), so this is most likely
+  a file-assembly error from the iter-6 era. No iter-7 conclusion depends on it
+  (it only affects the grey v6 reference curve, whose two lowest-p points
+  coincide).
+- All runs went through SLURM (dev for the smoke, job 188692; dev job 204190
+  for the zero-syndrome probe) — never the login node; this report itself was
+  compiled read-only from the login node with no compute performed.

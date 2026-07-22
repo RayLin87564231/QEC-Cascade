@@ -1,0 +1,27 @@
+Node: 25a-hgpn009  Start: 2026-07-22 23:46:21
+=== loading checkpoint (CPU) ===
+hidden=256 blocks=12 rounds=12 p-config={'p_train': 0.0055, 'p_min': 0.001, 'p_max': 0.0055, 'p_sampling': 'log-uniform'}
+ckpt step=None best_metric=0.18212890625
+loaded weights: ema  load_state_dict result: <All keys matched successfully>
+grid_shape=(T=13, ell=12, m=6, C=2)  num_logicals=12
+
+=== 1. zero-syndrome probe (B=64, all detectors=0) ===
+per-head sigmoid (zero syndrome, one representative row):
+[0.     0.     0.     0.     0.     0.     0.002  0.     0.     0.0005
+ 0.0004 0.0001]
+heads with sigmoid>0.5 on ALL-ZERO syndrome: 0 / 12
+all 64 rows identical: True
+any head flips on zero syndrome (should be False for a correct decoder): False
+
+=== 2. p=0.0005, 64 shots, via evaluate_decoders' own sampler path ===
+Cascade @ p=0.0005: n_failures=0 n_total=64 p_block=0.00000
+(v6 at this point measured p_block=0.42; v7 expected near 0)
+
+=== 3. sampler determinism check (no explicit seed) ===
+two fresh samplers, SAME circuit (p=0.002), identical detection events?  False
+two fresh samplers, SAME circuit (p=0.002), identical observables?      False
+samplers from DIFFERENT circuits (p=0.002 vs p=0.003), identical det?   False
+det2a mean click rate: 0.07073   det3 mean click rate: 0.10283
+
+=== done ===
+End: 2026-07-22 23:46:48
