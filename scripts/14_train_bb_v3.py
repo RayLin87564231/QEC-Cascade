@@ -27,7 +27,7 @@ import torch
 import torch.nn.functional as F
 
 from cascade.codes.bb import BBCode
-from cascade.data.stim_dataset import StimMemoryDataset
+from cascade.data.stim_dataset import PDist, StimMemoryDataset
 from cascade.data.tensorize import detection_events_to_grid, make_grid_indexer
 from cascade.models.cascade_bb import BBCascadeModel
 from cascade.models.ema import ParamEMA
@@ -46,6 +46,31 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--p-warmup", type=float, default=0.001)
     p.add_argument("--p-eval", type=float, nargs="+",
                    default=[0.001, 0.002, 0.003, 0.004, 0.005])
+    # Mixed-p training (iter-7 plan §3b). Mixed mode is ON iff (--p-min AND
+    # --p-max) or --p-list is given; otherwise --p-train drives the original
+    # single-p path verbatim (backward compat).
+    p.add_argument("--p-min", type=float, default=None,
+                   help="low end of the mixed-p sampling range; must be given "
+                        "together with --p-max (mixed-p range mode)")
+    p.add_argument("--p-max", type=float, default=None,
+                   help="high end of the mixed-p sampling range; also becomes "
+                        "the curriculum's stage-2 anneal target (p2) in mixed "
+                        "mode. Must be given together with --p-min")
+    p.add_argument("--p-sampling", choices=["log-uniform", "uniform", "grid"],
+                   default="log-uniform",
+                   help="mixed-p draw distribution over the log-spaced grid; "
+                        "'grid' draws uniformly from the grid points "
+                        "themselves (PDist mode='list')")
+    p.add_argument("--p-grid-points", type=int, default=16,
+                   help="number of log-spaced cache/snap points spanning "
+                        "[p-min, p-max]")
+    p.add_argument("--p-list", type=float, nargs="+", default=None,
+                   help="explicit list of p values for mixed-p sampling "
+                        "(PDist mode='list'); also turns mixed mode on and "
+                        "overrides --p-min/--p-max range construction")
+    p.add_argument("--p-weights", type=float, nargs="+", default=None,
+                   help="optional per-point weights for --p-list (must match "
+                        "its length); default uniform. Requires --p-list")
     p.add_argument("--steps", type=int, default=40000)
     p.add_argument("--batch", type=int, default=256,
                    help="micro-batch size; effective batch = batch * accum_steps")
@@ -78,10 +103,24 @@ def parse_args() -> argparse.Namespace:
                    help="ignore any last.pt and start fresh (default: auto-resume)")
     p.add_argument("--final-shots", type=int, default=200000)
     p.add_argument("--out", type=Path,
-                   default=Path("/home/leo07010/Ray/QEC/cascade/checkpoints"))
+                   default=Path(__file__).resolve().parents[1] / "checkpoints")
     p.add_argument("--tag", type=str, default="v3")
     p.add_argument("--seed", type=int, default=0)
-    return p.parse_args()
+    args = p.parse_args()
+
+    # Fail fast on ambiguous mixed-p flag combos (plan §3b decision: silent
+    # fallback to single-p is forbidden).
+    if (args.p_min is None) != (args.p_max is None):
+        p.error("--p-min and --p-max must be given together (mixed-p range "
+                "mode); got only one — refusing to silently fall back to "
+                "single-p")
+    if args.p_weights is not None and args.p_list is None:
+        p.error("--p-weights requires --p-list")
+    if args.p_list is not None and args.p_weights is not None \
+            and len(args.p_weights) != len(args.p_list):
+        p.error(f"--p-weights length ({len(args.p_weights)}) must match "
+                f"--p-list length ({len(args.p_list)})")
+    return args
 
 
 def build_bb(code: BBCode, rounds: int, hidden: int, blocks: int, device):
@@ -91,6 +130,38 @@ def build_bb(code: BBCode, rounds: int, hidden: int, blocks: int, device):
     grid_shape = grid_shape.to(device)
     model = BBCascadeModel(code=code, layout=layout, hidden=hidden, num_blocks=blocks).to(device)
     return model, layout, flat_idx, grid_shape
+
+
+def build_p_dist(args: argparse.Namespace) -> tuple[PDist | None, float | None, float | None]:
+    """Build the mixed-p sampling spec from CLI args (iter-7 plan §3b).
+
+    Returns ``(p_dist, p_min_eff, p_max_eff)``. ``p_dist`` is ``None`` when
+    mixed-p is off (no new flags given — single-p path is unaffected).
+    ``p_min_eff``/``p_max_eff`` are the low/high monitor-eval points: the
+    min/max of an explicit ``--p-list``, or ``--p-min``/``--p-max`` for the
+    log-spaced range modes.
+    """
+    mixed = (args.p_min is not None) or (args.p_list is not None)
+    if not mixed:
+        return None, None, None
+    # Derived, not reused: keeps the p-stream independent of the data seed
+    # while staying reproducible run-to-run.
+    dist_seed = args.seed + 10_000
+    if args.p_list is not None:
+        grid = tuple(float(x) for x in args.p_list)
+        weights = tuple(float(w) for w in args.p_weights) if args.p_weights is not None else None
+        p_dist = PDist(mode="list", grid=grid, weights=weights, seed=dist_seed)
+        return p_dist, min(grid), max(grid)
+    # Range mode: caller builds the grid — the dataset does not.
+    grid = tuple(float(x) for x in np.geomspace(args.p_min, args.p_max, args.p_grid_points))
+    if args.p_sampling == "grid":
+        # "grid" sampling choice maps to PDist(mode="list", weights=None ->
+        # uniform draw over the log-spaced points themselves).
+        p_dist = PDist(mode="list", grid=grid, weights=None, seed=dist_seed)
+    else:
+        p_dist = PDist(mode=args.p_sampling, grid=grid,
+                        p_min=args.p_min, p_max=args.p_max, seed=dist_seed)
+    return p_dist, args.p_min, args.p_max
 
 
 def head_weights(bce_ema: torch.Tensor, alpha: float, clamp: float) -> torch.Tensor:
@@ -158,9 +229,23 @@ def main() -> None:
     model, layout, flat_idx, grid_shape = build_bb(code, rounds, args.hidden, args.blocks, device)
     n_params = sum(p.numel() for p in model.parameters())
 
-    curriculum = CurriculumConfig(p1=args.p_warmup, p2=args.p_train)
+    p_dist, mix_p_min, mix_p_max = build_p_dist(args)
+    mixed = p_dist is not None
+    # Mixed mode: p_max defaults the curriculum's stage-2 anneal target;
+    # --p-train keeps separately naming the high-p monitor eval point (they
+    # are equal in the v7 launcher, but conceptually distinct knobs).
+    curriculum = CurriculumConfig(p1=args.p_warmup, p2=mix_p_max if mixed else args.p_train)
+    # Dataset starts in single-p warmup mode regardless of mixed-p — passing
+    # p_dist at construction would call set_mixed immediately (mixed from
+    # step 1), which is not what we want; set_mixed is called later, once,
+    # at the anneal_end stage boundary.
     ds = StimMemoryDataset(code=code, rounds=rounds, p=curriculum.p_at(0, args.steps),
                             batch_size=args.batch, seed=args.seed)
+    if mixed:
+        print(f"[main] mixed-p: mode={p_dist.mode} grid={len(p_dist.grid)} pts "
+              f"over [{mix_p_min:.4g},{mix_p_max:.4g}] (p_sampling={args.p_sampling}), "
+              f"curriculum p2->p_max, p_train(high-p monitor)={args.p_train:.4g}, "
+              f"dist_seed={p_dist.seed}")
     opts = build_muon_lion(
         model, muon_lr=args.muon_lr, muon_weight_decay=args.weight_decay,
         lion_lr=args.lion_lr, lion_weight_decay=0.0,
@@ -236,10 +321,28 @@ def main() -> None:
     early_warning_step = 5000
     early_warning_emitted = False
 
+    # Mixed-p stage switch (plan §3b): stages 1-2 stay on the single-p
+    # curriculum (warmup at p1, anneal to p2=mix_p_max) exactly as before; at
+    # anneal_end (stage-3 boundary) call ds.set_mixed once, re-create
+    # iter_ds, and never call ds.set_noise again. mixed_active is a fresh
+    # local (not persisted in the checkpoint) so it self-heals across
+    # resumes/segment rollovers: the first loop iteration re-checks
+    # step >= anneal_end and re-switches immediately if we resumed past it.
+    anneal_end = int(curriculum.warmup_frac * args.steps) + int(curriculum.anneal_frac * args.steps)
+    mixed_active = False
+    p_draw_tally: dict[float, int] = {}
+
     for step in range(start_step + 1, args.steps + 1):
         # Curriculum + LR update — once per *opt* step, before accum loop (Risk R3).
         p_now = curriculum.p_at(step, args.steps)
-        if abs(p_now - ds.p) > 1e-6:
+        if mixed and not mixed_active and step >= anneal_end:
+            ds.set_mixed(p_dist)
+            iter_ds = iter(ds)
+            mixed_active = True
+            print(f"  [mixed-p] switched dataset to mixed-p sampling at step {step} "
+                  f"(anneal_end={anneal_end}, grid={len(p_dist.grid)} pts over "
+                  f"[{mix_p_min:.4g},{mix_p_max:.4g}], mode={p_dist.mode})")
+        elif not mixed_active and abs(p_now - ds.p) > 1e-6:
             ds.set_noise(p_now)
             iter_ds = iter(ds)
 
@@ -260,6 +363,10 @@ def main() -> None:
         step_head_bce = torch.zeros_like(head_bce_ema)
         for _ in range(accum_steps):
             det, obs = next(iter_ds)
+            if mixed_active:
+                pd = ds.last_p
+                if pd is not None:
+                    p_draw_tally[pd] = p_draw_tally.get(pd, 0) + 1
             det = det.to(device, non_blocking=True)
             obs = obs.to(device, non_blocking=True)
             grid = detection_events_to_grid(det, flat_idx, grid_shape)
@@ -282,8 +389,11 @@ def main() -> None:
         loss_logged = loss_accum  # already scaled by 1/accum so it's the mean weighted BCE
 
         if step % 200 == 0 or step == 1:
+            mixed_suffix = (f" p_draw={ds.last_p:.4g} cache={ds.sampler_cache_size}"
+                             if mixed_active else "")
             print(f"  step {step:6d} | p={p_now:.4f} lr_mult={sched_mult:.3f} "
-                  f"loss {loss_logged:.4f} | {step / (time.time() - t_start):.2f} steps/s")
+                  f"loss {loss_logged:.4f} | {(step - start_step) / (time.time() - t_start):.2f} steps/s"
+                  f"{mixed_suffix}")
 
         if step % args.eval_every == 0 or step == args.steps:
             model.eval()
@@ -297,11 +407,34 @@ def main() -> None:
                     ema_metrics = evaluate_bb(model, code, rounds, args.p_train,
                                                 8192, flat_idx, grid_shape, device,
                                                 batch=args.eval_batch, use_bf16=use_bf16)
+            # Low-p monitor eval (mixed mode only, plan §3b) — the key live
+            # evidence that generalization is/isn't improving. Runs for the
+            # whole training when mixed flags are given (not gated on
+            # mixed_active) so the log shows the pre-switch baseline too.
+            live_metrics_lowp = None
+            ema_metrics_lowp = None
+            if mixed:
+                live_metrics_lowp = evaluate_bb(model, code, rounds, mix_p_min,
+                                                 8192, flat_idx, grid_shape, device,
+                                                 batch=args.eval_batch, use_bf16=use_bf16)
+                if step >= ema_warm_steps:
+                    with ema.applied(model):
+                        model.eval()
+                        ema_metrics_lowp = evaluate_bb(model, code, rounds, mix_p_min,
+                                                        8192, flat_idx, grid_shape, device,
+                                                        batch=args.eval_batch, use_bf16=use_bf16)
             history.append(dict(step=step, live=live_metrics, ema=ema_metrics,
+                                live_lowp=live_metrics_lowp, ema_lowp=ema_metrics_lowp,
                                 head_weights=w_heads.detach().cpu().tolist()))
             ema_str = f"ema p_block={ema_metrics['p_block']:.5f}" if ema_metrics else "ema=cold"
             print(f"  [eval] step={step} live p_block={live_metrics['p_block']:.5f} "
                   f"bce={live_metrics['bce']:.4f}  {ema_str}")
+            if mixed:
+                ema_lowp_str = (f"ema p_block={ema_metrics_lowp['p_block']:.5f}"
+                                 if ema_metrics_lowp else "ema=cold")
+                print(f"  [eval low-p] step={step} p={mix_p_min:.4g} "
+                      f"live p_block={live_metrics_lowp['p_block']:.5f} "
+                      f"bce={live_metrics_lowp['bce']:.4f}  {ema_lowp_str}")
             # Per-logical BCE / std (Risk R1/R2 monitoring)
             pl_bce = live_metrics["per_logical_bce"]
             pl_std = live_metrics["per_logical_std"]
@@ -311,9 +444,30 @@ def main() -> None:
                   ", ".join(f"{s:.3f}" for s in pl_std) + "]")
             print("    head loss w:     [" +
                   ", ".join(f"{v:.2f}" for v in w_heads.cpu().tolist()) + "]")
+            if mixed_active:
+                # Drawn-p variety + cache-bound observability (smoke §9.2).
+                tally_str = "{" + ", ".join(
+                    f"{k:.4g}: {v}" for k, v in sorted(p_draw_tally.items())) + "}"
+                print(f"    mixed-p draws: {tally_str}  cache_size={ds.sampler_cache_size}")
+                p_draw_tally.clear()
             best = ema_metrics or live_metrics
-            if best["p_block"] < best_p_block:
-                best_p_block = best["p_block"]
+            if mixed:
+                # Generalization-weighted selection (plan §3b, required, not
+                # optional): reward high-p AND low-p jointly so best.pt isn't
+                # a high-p-specialized checkpoint. Uses the SAME (EMA-
+                # preferred) evals computed above, matching today's
+                # preference order.
+                best_lowp = ema_metrics_lowp or live_metrics_lowp
+                selection_metric = 0.5 * (best["p_block"] + best_lowp["p_block"])
+                selection_desc = (
+                    f"0.5*(p_block@p_max[{mix_p_max:.4g}]={best['p_block']:.5f} + "
+                    f"p_block@p_min[{mix_p_min:.4g}]={best_lowp['p_block']:.5f}) "
+                    f"= {selection_metric:.5f}")
+            else:
+                selection_metric = best["p_block"]
+                selection_desc = f"p_block@p_train[{args.p_train:.4g}]={selection_metric:.5f}"
+            if selection_metric < best_p_block:
+                best_p_block = selection_metric
                 best_step = step
                 # save checkpoint
                 ema_state_dict = None
@@ -323,6 +477,10 @@ def main() -> None:
                 cfg_dict = vars(args).copy()
                 cfg_dict["out"] = str(cfg_dict["out"])
                 cfg_dict["effective_batch"] = effective_batch
+                if mixed:
+                    # Extra observability line — mixed mode only, so single-p
+                    # stdout stays byte-identical to today.
+                    print(f"  [best.pt] step={step} saved on metric: {selection_desc}")
                 torch.save({
                     "model": model.state_dict(),
                     "model_ema": ema_state_dict,
@@ -331,6 +489,7 @@ def main() -> None:
                     "history": history,
                     "best_step": best_step,
                     "best_p_block": best_p_block,
+                    "best_metric_desc": selection_desc,
                 }, out_dir / "best.pt")
             # Resume snapshot every eval — bounds preemption loss to eval_every.
             save_last(step)
