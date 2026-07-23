@@ -1,0 +1,650 @@
+{
+ "question": "研究問題:「通用(code-agnostic)神經網路 QEC decoder + FPGA 即時部署」的文獻現況與空缺。具體四條檢索線:(1) 通用/跨 code 的 NN decoder——GNN decoder(Tanner/detector graph 上操作)、transformer/seq2seq decoder、neural BP、multi-code 訓練與 transfer learning、foundation-model 式 decoder;(2) NN decoder 的 FPGA/即時硬體部署——量化/蒸餾、latency 預算(surface code ~1µs/round)、現有 FPGA/ASIC decoder 基準(含非 NN 對照:union-find、collision clustering);(3) 兩者交集——「通用 NN decoder + 硬體部署」有沒有人做過(預期交集很小=機會);(4) 2025–2026 最新文獻(知識截止後的要靠 web 補)。每條線要產出候選論文清單(標題/年份/一句話貢獻/與「訓練一個通用 NN 適用所有 QEC code 再燒進 FPGA」這個想法的關係)。引文必須逐篇對抗式核驗(對 abstract/內文核對宣稱),報告要拿去跟指導教授談,錯引代價高。背景錨點:我們自己的 BB-144 iteration 7 結果(mixed-p 訓練修復低 p 泛化,五點全勝 BP+OSD)證明「泛化可由訓練分布設計學出」在噪聲軸成立;現行模型輸入是綁 code 結構的 grid,跨 code 首先是輸入表示法/架構問題。最終報告用繁體中文(術語保留英文)。",
+ "summary": "文獻現況明確支持「機會空缺」假說:通用 NN decoder(線1)與 NN-on-FPGA 即時部署(線2)兩條線各自活躍,但交集(線3)在本次逐篇核驗的文獻中為空。線1方面,2023–2026 出現三類跨 code 泛化嘗試——detector-graph GNN(Lange et al., PRResearch 2025)提供 code-agnostic 的圖輸入表示法、SAGU(2025)證明 multi-code 訓練在 BB code 家族內可零精度代價地泛化到訓練集外的 code、NTU foundation decoder(2026)做 cross-distance transfer——但所有已核驗工作之泛化均限於「同一 code 家族內」(跨 distance 或跨 BB 參數),尚無跨結構相異 code 家族的單一模型。線2方面,NN decoder 上 FPGA 已被實驗證實可行(SUSTech 2026:d=3 surface code 實機閉環 550 ns、NN 推論僅 124 ns;QUNET 2025:4-bit QAT + early-exit),但每一個已部署的 NN decoder 都是 surface-code 專用;非 NN 對照組(LCD、Collision Clustering、Helios distributed UF)把 FPGA 基準定在 ~0.01–1 µs/round、d 最高 17–23。對照您的 BB-144 iteration 7 結果,「泛化可由訓練分布設計學出」在 code 軸的對應物(SAGU 的 multi-code 訓練)已有初步文獻支持,而「通用 NN + 燒進 FPGA」整條路徑仍無人佔據——NTU 論文明言 real-time 部署只是 future work。",
+ "findings": [
+  {
+   "claim": "【線1】SAGU(建立在 QuBA GNN decoder 之上的 multi-code 訓練框架)證明:在 quantum LDPC(BB code 家族)內,以多個 code 聯合訓練的單一 NN 可解碼訓練集外(unseen)的 code,且相較 QuBA 單一 code 專訓「comparable to or even outperforming」——即 multi-code 訓練無顯著精度代價。這是「訓練一個通用 NN 適用多個 code」最直接的先行文獻。",
+   "confidence": "high",
+   "sources": [
+    "https://arxiv.org/abs/2510.06257"
+   ],
+   "evidence": "Abstract 原文逐字核實:「Building on QuBA, we further develop SAGU (Sequential Aggregate Generalization under Uncertainty), a multi-code training framework with enhanced cross-domain robustness enabling decoding beyond the training set」及「SAGU achieves decoding performance comparable to or even outperforming QuBA's domain-specific training approach」。全文核對:訓練於 BB codes [[72,12,6]]/[[90,8,10]]/[[144,12,12]]/[[288,12,18]],在 held-out 的 [[756,16,≤34]] 上 out-of-domain 表現僅差在小數第四位。關鍵限定:(a) 泛化僅在 BB/coprime-BB 家族內、depolarizing(code-capacity 式)噪聲,非 circuit-level(論文自承 out of scope);(b) 僅測 p=0.06–0.10 高錯誤率區,無低 p 區;(c) preprint(OpenReview 審稿中),benchmark 為自報。(合併原 claims [0][1])",
+   "vote": "3-0 ×2 claims"
+  },
+  {
+   "claim": "【線1】Lange et al. 的 data-driven GNN decoder(Phys. Rev. Research 7, 023181, 2025)將解碼形式化為 detector graph 上的 graph classification——輸入是「圖」而非綁定 code 結構的 grid,是 code-agnostic 輸入表示法的最重要候選;且僅用模擬實驗數據訓練即可在 surface code circuit-level noise 下勝過拿到完整 error model 的 MWPM。",
+   "confidence": "high",
+   "sources": [
+    "https://arxiv.org/abs/2307.01241"
+   ],
+   "evidence": "Abstract 逐字核實:「The decoding problem is formulated as a graph classification task in which a set of stabilizer measurements is mapped to an annotated detector graph for which the neural network predicts the most likely logical error class」及「can outperform a matching decoder for circuit level noise on the surface code given only simulated experimental data, even if the matching decoder is given full information of the underlying error model」。已同行評審(PRResearch 2025)。限定:論文中每個 code/dataset 仍各訓練一個網路(surface code 模擬 + Google repetition code 實驗數據),幾何資訊經 node 座標特徵進入——表示法 code-agnostic,但論文未示範單一模型跨 code;d=9 時尚未穩定勝過 belief-matching,訓練成本重(~1e9 樣本)。(合併原 claims [2][3])",
+   "vote": "3-0 ×2 claims"
+  },
+  {
+   "claim": "【線1】Transformer-QEC(ICCAD 2023)以 self-attention 取得對全部 syndrome 的 global receptive field;其宣稱的 transferability 僅為「跨 code distance」(同 surface code 家族、變長輸入),且實際上需 fine-tuning(省約 10 倍訓練成本)而非 zero-shot——並非跨 code 家族的通用性,反而佐證通用 decoder 的空缺真實存在。",
+   "confidence": "high",
+   "sources": [
+    "https://arxiv.org/abs/2311.16082"
+   ],
+   "evidence": "Abstract 逐字核實:「employs self-attention to achieve a global receptive field across all input syndromes」、「adapt to varying code distances without retraining」。全文核對:實驗僅限 surface code,d=5 訓練後以 10 epochs fine-tune 到 d=7/d=9——abstract 的「without retraining」是論文自己的過度包裝,引用時應寫成「fine-tuning、約 10 倍成本節省」。無任何 color code/qLDPC/BB 實驗。(合併原 claims [4][5])",
+   "vote": "3-0 ×2 claims"
+  },
+  {
+   "claim": "【線1】NTU「foundation decoder」(arXiv:2606.27119, 2026-06)提出 neural transfer unification:利用可擴展 code 家族共享的代數結構對齊不同 distance 的解碼任務,讓小 code 學到的知識加速大 code 訓練(surface d=7→19、BB [[72,12,6]]→[[144,12,12]] 各自獨立遞進);在 [[72,12,6]] BB code 低 p 區自報勝過 Relay-BP(p=0.1% 時 LER 1.8e-7 vs 3.5e-7)——與 BB-144 對打 BP 家族的比較精神最接近,但它不是單一 code-agnostic 模型,且 FPGA/quantization/real-time 全部只列為 future work。",
+   "confidence": "medium",
+   "sources": [
+    "https://arxiv.org/abs/2606.27119"
+   ],
+   "evidence": "Abstract 逐字核實:「A central feature of NTU is its ability to align decoding tasks across code distances via algebraic structures shared by scalable code families」、「For the bivariate bicycle code with [[72,12,6]], it surpasses Relay-BP in the low-physical-error regime」、「a scalable route to amortized cross-distance training of foundation decoders」。全文檢索確認零筆 FPGA/ASIC/quantization/latency 結果;「real-time」僅出現在 Discussion 作為未來方向,但論文自稱「the first open-source foundation decoder for QEC」。信心降為 medium 的原因:一個月新的 preprint、無獨立重現、Relay-BP 配置未完整交代、性能為自報;另注意 code 為 [[72,12,6]] 非 [[144,12,12]]、baseline 為 Relay-BP 非 BP+OSD。(合併原 claims [6][7][8])",
+   "vote": "3-0 ×3 claims"
+  },
+  {
+   "claim": "【線2】SUSTech(arXiv:2605.04892, 2026-05)在超導量子處理器上「實機」示範 FPGA NN decoder 的 real-time surface-code QEC:確定性閉環延遲 550 ns(其中 NN 推論 124 ns),在 1.25 µs QEC cycle 內完成回饋——證明 NN decoder 可達 FPGA 即時預算;但僅 d=3、per-stabilizer LSTM、輸入綁定 surface-code 結構,abstract 對 cross-code 泛化零宣稱。",
+   "confidence": "high",
+   "sources": [
+    "https://arxiv.org/abs/2605.04892"
+   ],
+   "evidence": "Abstract 逐字核實:「experimentally demonstrate real-time surface-code (distance-3) QEC on a superconducting quantum processor. The system achieves a deterministic closed-loop latency of 550 ns, including 124 ns for NN decoding, enabling feedback corrections within a 1.25 us QEC cycle」。全文核對:每個 XX/ZZ stabilizer 各一個 32-hidden-unit LSTM,STIM 模擬數據訓練+實驗數據 fine-tune;scalability 討論只涵蓋 distance 擴展(~d=13,再往上靠更高階 FPGA/ASIC/multi-FPGA),對 color/qLDPC/BB code 隻字未提。限定:~2.5 個月新的 preprint、未同行評審、d=3 的 logical 表現僅「comparable to offline MWPM」。(合併原 claims [9][10][11])",
+   "vote": "3-0 ×3 claims"
+  },
+  {
+   "claim": "【線2】QUNET(Euromicro DSD 2025, 同行評審)給出 NN decoder 上 FPGA 的壓縮技術範本:quantization-aware training 將權重與 activation 壓到最低 4 bits、early-exit 機制讓簡單 syndrome 走淺層子網路平均省 34% 解碼時間、比 dataflow 實作省最多 50% FPGA 資源——但架構是 surface-code 專用的 grid/UNet,佔線2不佔線3。",
+   "confidence": "high",
+   "sources": [
+    "https://ieeexplore.ieee.org/document/11272758/"
+   ],
+   "evidence": "經 Semantic Scholar(DOI 10.1109/DSD67783.2025.00090)與 DBLP(conf/dsd/HuoN25, pp. 616-624, Huo & Nunez-Yanez)雙重核實 abstract 逐字:「we present QUNET, a quantized modular UNet decoder for surface codes, which incorporates quantization-aware training (QAT) to compress weights and activations to as low as 4 bits」、「introduces an early-exit mechanism that dynamically routes simple syndromes through a shallower subnetwork to save on average 34% of decoding time」。限定:abstract 未給絕對 latency 數字(34% 是相對節省);「as low as 4 bits」可能是混合精度;UNet 為卷積 grid 輸入架構,天然非 code-agnostic。(合併原 claims [12][13])",
+   "vote": "3-0 ×2 claims"
+  },
+  {
+   "claim": "【線2】Overwater et al.(IEEE Trans. Quantum Eng. 2022)對小 distance surface code 的 fully-connected feed-forward NN decoder 做設計空間探索,報告 post-place-and-route 時序:FPGA <90 ns、ASIC <30 ns,遠低於固態 qubit ~440 ns 延遲預算——是「NN 塞得進 FPGA latency 預算」的最早量化證據,但須註明:數字是 Vivado post-implementation 估計而非實機量測、僅 d=3/5 塞進 Artix-7、噪聲模型為無測量錯誤的 depolarizing(code-capacity),且架構完全 code-specific。",
+   "confidence": "high",
+   "sources": [
+    "https://arxiv.org/abs/2202.05741"
+   ],
+   "evidence": "Abstract 逐字核實:「This work presents a space exploration of fully-connected feed-forward NN decoders for small distance surface codes」、「well below the tight delay requirements (≈440 ns) of current solid-state qubit technologies for both ASIC designs (<30 ns) and FPGA implementations (<90 ns)」。全文:Table IV 給 17.9/71.9 ns(d=3)、87.6 ns(d=5);論文自承「All FPGA values are post-implementation room-temperature estimates」且「would not be able to decode the time-dependent errors deriving from the measurement errors」。引用時措辭應為「報告 post-implementation 時序顯示可行」而非「實機示範」。(合併原 claims [14][15])",
+   "vote": "3-0 ×2 claims"
+  },
+  {
+   "claim": "【非NN對照】Riverlane Local Clustering Decoder(Nature Communications 16:11048, 2025-12,同行評審):adaptive、distributed 的 Union-Find 式 error-clustering 純古典演算法,實作於 Xilinx VU19P/ZCU111 FPGA,rotated planar surface code 到 d=17 均 <1 µs/round(d=17 平均 0.622/0.676 µs)——這是任何「NN 燒進 FPGA」提案必須對打的非 NN 硬體基準,且 LCD 本身 surface-code 專用、非 code-agnostic。",
+   "confidence": "high",
+   "sources": [
+    "https://www.nature.com/articles/s41467-025-66773-x",
+    "https://arxiv.org/abs/2411.10343"
+   ],
+   "evidence": "原文逐字核實:「LCD is an adaptive and distributed version of an error-clustering algorithm based on Union-Find, which we implement on FPGAs」、「We decode in less than 1 μs per round up to d = 17 with and without adaptivity」。全文(PMC12712087)核對 Table 3 具體數字。限定:sub-µs 是 10M shots 的「平均」per-round 時間而非 worst-case 保證;syndrome 為 Stim 模擬 circuit-level noise(含 leakage)非實機;FPGA 時脈由 400 MHz(d=5)降至 285 MHz(d=17),餘裕隨 d 縮小;「作為 NN 的對照基準」是本報告的定位而非論文自述。(合併原 claims [16][17])",
+   "vote": "3-0 ×2 claims"
+  },
+  {
+   "claim": "【非NN對照】Riverlane Collision Clustering decoder(Nature Electronics 2025,同行評審):古典 clustering 演算法同時做出 FPGA 與 ASIC 實作——FPGA(Xilinx XCVU3P)解到 881-qubit(d=21)surface code 平均 810 ns/round,ASIC(12 nm FinFET)解到 1057-qubit(d=23)平均 240 ns/round、僅 0.06 mm²、8 mW——這組面積/功耗/速度數字是 NN decoder 硬體化必然被比較的資源效率標竿。",
+   "confidence": "high",
+   "sources": [
+    "https://arxiv.org/abs/2309.05558"
+   ],
+   "evidence": "Abstract 逐字核實:「we introduce the Collision Clustering decoder and implement it on FPGA and ASIC hardware」、「demonstrate MHz decoding speed... up to an 881 and 1057 qubits surface code with the FPGA and ASIC, respectively」、「The ASIC design occupies 0.06 mm² and consumes only 8 mW」。全文 Table II 核對:0.064 mm²、7.85 mW 總功耗、2 GHz、p=0.1% circuit-level。兩個必帶限定:(1) ASIC 為 sign-off 級 post-place-and-route 設計、「ready to be taped out」但未流片——240 ns/0.06 mm²/8 mW 是設計估計非實測矽(FPGA 數字為實機);(2) 速度為 Stim 模擬 memory 實驗的平均 per-round 時間,非真實量子硬體數據。(合併原 claims [18][19][20])",
+   "vote": "3-0 ×3 claims"
+  },
+  {
+   "claim": "【非NN對照】Helios distributed Union-Find decoder(IEEE Trans. Quantum Eng. 2024, Yale):在 Xilinx VCU129 FPGA 上以 O(d³) 平行資源達成對 d 的 sublinear 平均時間複雜度——d=21 在 0.1% phenomenological noise 下平均 11.5 ns/round(比 1 µs 預算低約兩個數量級)、d=17 circuit-level 23.7 ns、資源節約模式 d=51 為 544 ns——證明非 NN 演算法 decoder 在 FPGA 上可即時擴展,是 NN 方案的速度上限參照。",
+   "confidence": "high",
+   "sources": [
+    "https://arxiv.org/abs/2406.08491"
+   ],
+   "evidence": "Abstract 逐字核實:「Using an FPGA-based implementation, we empirically show that this distributed UF decoder has a sublinear average time complexity with regard to d, given O(d³) parallel computing resources」、「Using a Xilinx VCU129 FPGA, we successfully implement d up to 21 with an average decoding time of 11.5 ns per measurement round under 0.1% phenomenological noise, and 23.7 ns for d=17 under equivalent circuit-level noise」。同行評審(DOI 10.1109/TQE.2024.3467271),後續文獻(Snowflake、Actis、QUEKUF)均引為公認基準。限定:sublinear 為特定噪聲模型下的經驗平均值;O(log d) 理論分析未計 inter-node 通訊;11.5 ns 是平均 throughput 非 worst-case 閉環延遲;時脈在 d>21 後劣化;UF 精度略遜 MWPM。(合併原 claims [21][22])",
+   "vote": "3-0 ×2 claims"
+  },
+  {
+   "claim": "【latency 預算】1QBit/Quantum Machines 等的 utility-scale 分析(arXiv:2511.10633, 2025-11)指出:即使 decoder 已達 sub-µs/round,在 10^6–10^11 T gates、200–2000 logical qubits、Λ=9.3、2.86 MHz stabilization 的設定下仍引入巨大開銷——magic state factory 多 ~100k–250k physical qubits、core processor 因 d→d+4 多 ~300k–1.75M qubits、runtime 拉長 ~100 倍——意即 NN/FPGA decoder 的實際 latency 目標比「1 µs/round」更緊(2.86 MHz ≈ 350 ns/round)。",
+   "confidence": "medium",
+   "sources": [
+    "https://arxiv.org/pdf/2511.10633"
+   ],
+   "evidence": "PDF 第一頁 abstract 逐字核實全部數字:「even decoding at a sub-microsecond per stabilization round speed introduces substantial resource overheads: approximately 100k–250k additional physical qubits for correction qubit storage in the magic state factory; 300k–1.75M extra physical qubits in the core processor due to the code distance increase of d to d+4...; and a longer runtime by roughly a factor of 100」。信心為 medium 的原因:未同行評審的 preprint、數字是單一 surface-code 架構研究的模型推估而非量測;但已在 APS 2026 發表、被後續同行評審工作(Snowflake, Quantum 2026)引用。同源另一條宣稱(Riverlane d=30 UF 1.0 µs 為 SOTA)被否決(0-3),引用本篇時避開該句。",
+   "vote": "3-0"
+  },
+  {
+   "claim": "【線3核心結論】在本次逐篇對抗式核驗的全部文獻中,「code-agnostic NN decoder + FPGA/即時硬體部署」交集為空:每一個已上 FPGA 的 NN decoder(SUSTech d=3 LSTM、QUNET UNet、Overwater FC-FF)都是 surface-code 專用;每一個跨 code 泛化的 NN decoder(SAGU、detector-graph GNN、NTU)都無任何硬體實作——NTU 論文甚至明說 real-time/quantization/distillation 是 future work 並自稱「first open-source foundation decoder」可作 real-time 優化起點。機會空缺假說成立:把 multi-code 訓練出的通用 NN 量化後燒進 FPGA,目前無人佔據。",
+   "confidence": "high",
+   "sources": [
+    "https://arxiv.org/abs/2606.27119",
+    "https://arxiv.org/abs/2605.04892",
+    "https://ieeexplore.ieee.org/document/11272758/",
+    "https://arxiv.org/abs/2202.05741",
+    "https://arxiv.org/abs/2510.06257"
+   ],
+   "evidence": "跨四篇 3-0 核驗結果的綜合:(a) NTU 全文檢索零筆 FPGA/quantization/latency 結果,real-time 僅在 Discussion 列為未來方向;(b) SUSTech 實機 demo 的 LSTM 輸入綁定 surface-code stabilizer 結構,abstract 對 code 軸泛化零宣稱;(c) QUNET 明確限定 surface codes、UNet grid 輸入;(d) Overwater FC-FF 每個實例輸入固定綁單一 code/distance,全文無 multi-code/transfer 宣稱;(e) SAGU 全文無任何硬體部署內容。注意:此為「絕證式」結論,嚴格說只能宣稱「在已核驗文獻集合內為空」——見 caveats。(綜合原 claims [8][11][12][15],輔以 [0])",
+   "vote": "3-0 ×4 claims (synthesized)"
+  }
+ ],
+ "caveats": "(1) Preprint 比例高:四篇關鍵文獻未經同行評審——SAGU(2025-10, OpenReview 審稿中)、NTU foundation decoder(2026-06,僅一個月)、SUSTech FPGA 實機 demo(2026-05)、utility-scale latency 分析(2025-11);其性能數字皆為自報、無獨立重現。跟教授談時應明確標注 preprint 身分。(2) 「跨 code 泛化」的實際範圍比字面窄:SAGU 限 BB 家族內、code-capacity 式噪聲、僅高 p 區(0.06–0.10);Transformer-QEC 與 NTU 均為跨 distance 非跨家族;無任何論文示範跨結構相異家族(surface↔BB↔color)的單一模型。(3) 硬體數字多處非實測:Overwater 的 <90 ns 是 Vivado post-implementation 估計、Collision Clustering ASIC(0.06 mm²/8 mW/240 ns)未流片、LCD 與 CC 的 sub-µs 均為 Stim 模擬 syndrome 的「平均」而非 worst-case;實機閉環量測只有 SUSTech 的 550 ns(d=3)。(4) 措辭陷阱:Transformer-QEC 的「without retraining」實為 fine-tuning;NTU 的「surpasses Relay-BP」限低 p 區且 Relay-BP 配置不明;引用時保留原文限定詞。(5) 時效性:web 檢索截至 2026-07,線3「交集為空」是對已核驗集合的陳述,無法排除未檢得的新工作(此領域月更速度快,建議報告標注檢索日期)。(6) 一條原始宣稱被 0-3 否決(Riverlane d=30 UF 1.0 µs 為 SOTA),已剔除;引用 arXiv:2511.10633 時避開該句。",
+ "openQuestions": [
+  "跨『家族』的輸入表示法是否可行:detector-graph GNN(Lange et al.)的圖表示理論上 code-agnostic,但無人示範單一模型在 surface↔BB↔color 間 zero-shot 或 fine-tune 轉移;SAGU 式 multi-code 訓練混入異家族 code 會不會出現精度崩塌(這正是 BB-144 mixed-p 經驗在 code 軸的對應實驗)?",
+  "GNN/transformer 的 message-passing 與 attention 能否塞進 FPGA latency 預算:已示範的 FPGA NN 全是 LSTM/FC/UNet;GNN 的不規則稀疏運算在 ~350 ns–1 µs/round 預算下的可行性(量化後資源/時序)完全沒有文獻數據。",
+  "真正的 latency 目標是多少:1 µs/round 是慣用值,但 utility-scale 分析指向 ~350 ns(2.86 MHz)且 backlog 代價巨大;通用 NN decoder 若因泛化而變大(如 NTU-Transformer),量化/蒸餾能守住哪個目標?",
+  "SAGU 式跨 code 泛化能否撐到 circuit-level noise 與低 p 區:現有證據只在 code-capacity、p=0.06–0.10;而 FPGA 部署場景恰恰是 circuit-level、低 p——兩個未驗證軸疊加後泛化是否仍成立,是此研究方向的最大技術風險。"
+ ],
+ "refuted": [
+  {
+   "claim": "The state-of-the-art surface code decoder is Riverlane's FPGA Union-Find implementation with a decoding time of 1.0 µs per stabilization round for a distance-30 quantum memory — sufficient only if the QPU stabilization round time is >= 1.0 µs, and impractical for large lattice surgeries with single decoding units.",
+   "vote": "0-3",
+   "source": "https://arxiv.org/pdf/2511.10633"
+  }
+ ],
+ "unverified": [],
+ "sources": [
+  {
+   "url": "https://arxiv.org/abs/2510.06257",
+   "quality": "primary",
+   "angle": "通用架構線:GNN / transformer / neural BP decoder",
+   "claimCount": 5
+  },
+  {
+   "url": "https://arxiv.org/abs/2307.01241",
+   "quality": "primary",
+   "angle": "通用架構線:GNN / transformer / neural BP decoder",
+   "claimCount": 5
+  },
+  {
+   "url": "https://arxiv.org/abs/2311.16082",
+   "quality": "primary",
+   "angle": "通用架構線:GNN / transformer / neural BP decoder",
+   "claimCount": 5
+  },
+  {
+   "url": "https://arxiv.org/abs/2606.27119",
+   "quality": "primary",
+   "angle": "通用訓練線:multi-code 訓練 / transfer learning / foundation model",
+   "claimCount": 5
+  },
+  {
+   "url": "https://arxiv.org/abs/2605.04892",
+   "quality": "primary",
+   "angle": "NN 硬體部署線:FPGA 上的 NN decoder 與量化蒸餾",
+   "claimCount": 5
+  },
+  {
+   "url": "https://ieeexplore.ieee.org/document/11272758/",
+   "quality": "primary",
+   "angle": "NN 硬體部署線:FPGA 上的 NN decoder 與量化蒸餾",
+   "claimCount": 5
+  },
+  {
+   "url": "https://arxiv.org/abs/2202.05741",
+   "quality": "primary",
+   "angle": "NN 硬體部署線:FPGA 上的 NN decoder 與量化蒸餾",
+   "claimCount": 5
+  },
+  {
+   "url": "https://www.nature.com/articles/s41467-025-66773-x",
+   "quality": "primary",
+   "angle": "NN 硬體部署線:FPGA 上的 NN decoder 與量化蒸餾",
+   "claimCount": 5
+  },
+  {
+   "url": "https://arxiv.org/abs/2309.05558",
+   "quality": "primary",
+   "angle": "NN 硬體部署線:FPGA 上的 NN decoder 與量化蒸餾",
+   "claimCount": 5
+  },
+  {
+   "url": "https://arxiv.org/abs/2406.08491",
+   "quality": "primary",
+   "angle": "NN 硬體部署線:FPGA 上的 NN decoder 與量化蒸餾",
+   "claimCount": 5
+  },
+  {
+   "url": "https://arxiv.org/pdf/2511.10633",
+   "quality": "primary",
+   "angle": "非 NN 基準線:union-find / clustering 的 FPGA/ASIC decoder",
+   "claimCount": 5
+  },
+  {
+   "url": "https://arxiv.org/pdf/2510.25222",
+   "quality": "primary",
+   "angle": "非 NN 基準線:union-find / clustering 的 FPGA/ASIC decoder",
+   "claimCount": 5
+  },
+  {
+   "url": "https://github.com/NamiLiy/Helios_scalable_QEC",
+   "quality": "primary",
+   "angle": "非 NN 基準線:union-find / clustering 的 FPGA/ASIC decoder",
+   "claimCount": 5
+  },
+  {
+   "url": "https://arxiv.org/abs/2502.19971",
+   "quality": "primary",
+   "angle": "最新文獻與交集空缺線:2025–2026 通用 NN decoder + 硬體",
+   "claimCount": 4
+  },
+  {
+   "url": "https://arxiv.org/abs/2512.07737",
+   "quality": "primary",
+   "angle": "最新文獻與交集空缺線:2025–2026 通用 NN decoder + 硬體",
+   "claimCount": 5
+  },
+  {
+   "url": "https://arxiv.org/abs/2603.22149",
+   "quality": "primary",
+   "angle": "最新文獻與交集空缺線:2025–2026 通用 NN decoder + 硬體",
+   "claimCount": 5
+  },
+  {
+   "url": "https://arxiv.org/abs/2510.21600",
+   "quality": "primary",
+   "angle": "最新文獻與交集空缺線:2025–2026 通用 NN decoder + 硬體",
+   "claimCount": 5
+  }
+ ],
+ "stats": {
+  "angles": 5,
+  "sourcesFetched": 17,
+  "claimsExtracted": 84,
+  "claimsVerified": 25,
+  "confirmed": 24,
+  "killed": 1,
+  "unverified": 0,
+  "afterSynthesis": 12,
+  "urlDupes": 9,
+  "budgetDropped": 4,
+  "agentCalls": 99
+ },
+ "neuralBpRound": {
+  "round": 2,
+  "workflowId": "wf_7b6a70f5",
+  "label": "neural-BP / learned message-passing 補核驗輪（併入第一輪 universal-decoder survey）",
+  "retrievalDate": "2026-07",
+  "voteScheme": "3-vote adversarial (逐篇對 abstract/內文核對)",
+  "confidenceRubric": "high = ≥2 個獨立 primary source 且全票 3-0；medium = 單一 primary source（即使 3-0，未獨立佐證）或 split vote（2-1）或 secondary source；low = 單一來源且投票分歧/errored。註：本輪對 brief 之『low=單一來源』做了 corroboration 加權調整——通過 3-0 對抗式核驗的單一 primary source 列 medium（非 low），並在每條 finding 的 evidence 標明來源數與投票，供覆核者自行重排。",
+  "question": "研究問題:「neural belief propagation(neural BP / learned BP / unrolled BP as NN)用於 QEC 解碼」的文獻核驗——目的是補一份已完成調查報告的明確缺口,回答三個問題:(1) 準確率上限:neural BP(或 learned message passing / neural min-sum / GNN-augmented BP)在 quantum LDPC code(尤其 bivariate bicycle / BB codes、surface code)上不接 OSD 後處理能達到什麼 logical error rate?與 BP+OSD 的差距數字?代表作:Liu & Poulin 2019(neural BP for quantum codes)、之後的 quantum neural BP 系列、learned scaling/min-sum for qLDPC、Relay-BP 等 BP 改良系(Relay-BP 是否算 learned?)。(2) 通用性:neural BP 學到的權重是綁死單一 Tanner graph,還是跨 code 共享/可轉移?(架構=Tanner graph 天生 code-adaptive,但權重呢?)有沒有「一組學到的參數用於多個 code」的示範?(3) 硬體:BP 或 neural BP decoder 的 FPGA/ASIC 實作(QEC 用),latency/資源數字;min-sum 定點化在 QEC decoder 的先例。(4) 2024–2026 最新(含 BB code 熱潮後的 BP 改良)。每篇要:標題/年份/一句話貢獻/與「用單一 NN 處理不同 parity check」這個想法的關係。引文逐篇對抗式核驗(對 abstract/內文),報告要拿去跟指導教授談,錯引代價高。背景:已完成的調查確認 SAGU(2510.06257)證明 multi-code GNN 訓練在 BB 家族內可泛化、我們自己的 BB-144 Cascade decoder 全點勝 BP+OSD(baseline 就是 BP+OSD,p=0.002 時 p_block 0.00038 vs 0.00333);此輪要判定的戰略問題是:neural-BP 路線是「低風險 fallback」還是「準確率死路」。繁體中文輸出,術語保留英文。",
+  "summary": "本輪補齊第一輪 survey 標註的 neural-BP 缺口。戰略判定：neural-BP（廣義 learned/message-passing BP 不接 OSD）是低風險 fallback、非準確率死路，但須走 GNN-式 message passing 或 Relay-BP-式方法（天真 neural min-sum 在 bicycle 家族失敗）。四子問題：(a) 不接 OSD 的準確率——Astra 與 Relay-BP 兩個獨立工作證明 no-OSD message passing 在 BB code 勝 BP+OSD；經典 neural BP（Liu&Poulin）只勝 untrained BP、無 BP+OSD 比較；(b) 通用性——權重限同家族內跨尺寸/距離轉移，固定 min-sum 權重綁 CN degree，無跨家族單一權重組；(c) 硬體——本輪無 neural-BP 專屬 FPGA 數字（缺口）；(d) 最新——Relay-BP 為 BB-era 純 BP 改良但非 neural。19 sources fetched、94 claims → 25 核驗 → 21 confirmed / 3 refuted / 1 unverified，皆 3-vote 對抗式。",
+  "findings": [
+   {
+    "id": "nbp-a-astra",
+    "subQuestion": "(a) 不接 OSD 的準確率上限與對 BP+OSD 的差距",
+    "claim": "【a 準確率上限】Astra（learned GNN message-passing decoder）在完全不接任何 post-processing/OSD 的情況下，於 surface code（訓練至 d=11）與 bivariate bicycle (BB) codes（訓練至 d=18）達到比 BP+OSD 更高的 threshold 與更低的 logical error rate；正文另報 surface code threshold 約 17%（Astra）對約 14%（BP+OSD）。這是『learned message-passing 不接 OSD 的準確率上限』問題最直接的正面證據，但限 code-capacity noise。",
+    "confidence": "medium",
+    "sources": [
+     "https://arxiv.org/abs/2408.07038"
+    ],
+    "evidence": "單一 primary source、3-0 核驗。限定：(a) code-capacity noise，非 circuit-level；(b) preprint、性能自報；(c) 17%/14% threshold 出自 3-0 核驗之 claim 所述（來源正文/圖），單點 LER 數值未能自 abstract/正文核實（見本輪 refuted[2]，隔離處理，不得引用單點 LER 對打我方 8.8×）。",
+    "vote": "3-0",
+    "mergedFrom": "confirmed[15] (Astra no-post-processing 勝 BP+OSD)"
+   },
+   {
+    "id": "nbp-a-overcomplete",
+    "subQuestion": "(a) 不接 OSD 的準確率上限與對 BP+OSD 的差距",
+    "claim": "【a 準確率上限】在小型 generalized bicycle (GB) codes（[[48,6,8]]、[[46,2,9]]）上，不接 OSD 的 quaternary BP on overcomplete check matrix（OBP4，僅 6 iterations、無 learned weights）在 code-capacity depolarizing channel 下 FER 勝過 BP+OSD 級參考（Panteleev–Kalachev 的 32-iter serial normalized min-sum + OSD-10），改善逾一個數量級；同一結論在另一獨立工作（Miao et al., KIT）以 NBP + overcomplete matrix 重現，其比較基準確為 min-sum+OSD。關鍵機制是 overcomplete check matrix 而非 neural 訓練——單靠 overcomplete BP 就已與 BP+OSD 相當。",
+    "confidence": "high",
+    "sources": [
+     "https://arxiv.org/abs/2308.08208",
+     "https://arxiv.org/abs/2212.10245"
+    ],
+    "evidence": "兩個獨立 primary source、皆 3-0。含意：『不接 OSD 追平/勝過 BP+OSD』在小 GB code 上可行，但增益主要來自 overcomplete matrix 技巧、非 learned 權重。隔離：larger GB codes（[[254,28]]、[[126,28,8]]）上 OBP4 是否仍勝 reference 之 claim 被 0-3 否決（refuted[0]），不得當支持證據。",
+    "vote": "3-0 ×2 independent works",
+    "mergedFrom": "confirmed[3][4][5][6] (Miao NBP+overcomplete 勝 min-sum+OSD reference; reference=min-sum+OSD; overcomplete BP 已與 reference 相當; OBP4 勝 reference)"
+   },
+   {
+    "id": "nbp-a-neural-minsum-failed",
+    "subQuestion": "(a) 不接 OSD 的準確率上限與對 BP+OSD 的差距",
+    "claim": "【a 反面/風險】在同一篇（2308.08208）中，neural BP（NBP，可訓練權重）在 GB（bicycle 家族）code 上的訓練並不成功——作者明言效果不如 toric code、故略去 GB code 的 NBP 結果；該文所有 GB code 增益均來自非學習的 overcomplete-matrix 技巧。這是『天真的 neural min-sum / 可訓練權重 BP』在 bicycle 型 qLDPC 上的直接負面證據。",
+    "confidence": "medium",
+    "sources": [
+     "https://arxiv.org/abs/2308.08208"
+    ],
+    "evidence": "單一 primary source、3-0（作者自述之失敗結果，可靠度高）。對戰略判定關鍵：fallback 不能走天真 neural min-sum，須走 GNN-式 message passing 或 Relay-BP-式方法。",
+    "vote": "3-0",
+    "mergedFrom": "confirmed[7] (NBP training for GB code not successful, results omitted)"
+   },
+   {
+    "id": "nbp-a-classic-nbp",
+    "subQuestion": "(a) 不接 OSD 的準確率上限與對 BP+OSD 的差距",
+    "claim": "【a 基準陷阱】Liu & Poulin 的 neural BP（BP message-passing 加 trainable weights/biases、無 OSD）在 toric code 與 [[256,32]] quantum bicycle code 上，解碼準確率相對未訓練的 plain BP 提升最多 3 個數量級（hypergraph-product code 僅約 1 個數量級）；但全文 baseline 是 untrained BP，完全沒有 BP+OSD 比較、也無絕對 logical error rate 數值（僅圖示）——經典 neural BP 文獻無法提供『neural BP 不接 OSD vs BP+OSD 的差距數字』。",
+    "confidence": "medium",
+    "sources": [
+     "https://arxiv.org/abs/1811.07835",
+     "https://link.aps.org/doi/10.1103/PhysRevLett.122.200501"
+    ],
+    "evidence": "同一工作之 arXiv 與 PRL 兩版、皆 3-0。引用時務必寫『相對 untrained BP』而非『相對 BP+OSD』，否則誤引；此文的『3 orders』是相對 plain BP 的改善量，不是對 BP+OSD 的差距。",
+    "vote": "3-0",
+    "mergedFrom": "confirmed[0][1][11][12] (3 orders vs untrained BP; 無 OSD 比較; PRL toric 3 orders; [[256,32]] bicycle 3 orders)"
+   },
+   {
+    "id": "nbp-a-bpgnn",
+    "subQuestion": "(a) 不接 OSD 的準確率上限與對 BP+OSD 的差距",
+    "claim": "【a 反面】Gong–Cammerer–Renes 的 BP+GNN decoder 僅宣稱勝過 random perturbation、enhanced feedback、augmentation 三種 post-processing，並未宣稱勝過 OSD（BP+OSD 僅為對照曲線）——即此 learned-BP 變體未展示『不接 OSD 而達到或超越 BP+OSD』的準確率。",
+    "confidence": "medium",
+    "sources": [
+     "https://arxiv.org/abs/2310.17758"
+    ],
+    "evidence": "單一 primary source、2-0（第三票 errored）。同源之 test-code 細節延伸 claim 因三票全 errored 列 unverified（本輪 unverified[0]），不引用。",
+    "vote": "2-0",
+    "mergedFrom": "confirmed[20] (BP+GNN 僅勝三種 post-processing 非 OSD)"
+   },
+   {
+    "id": "nbp-a-transformer-context",
+    "subQuestion": "(a) 情境對照：純 NN（非 neural BP）在 BB 尺寸的表現",
+    "claim": "【a 情境對照，非 neural BP】recurrent transformer NN decoder：在 [[72,12,6]] BB code、circuit-level noise、p=0.1% 下 logical error rate 比 BP+OSD 低近 5 倍；但在 [[144,12,12]] BB code（BB-144）上反而比 BP+OSD 差（僅保留速度優勢）；作者結論 ML decoder 勝過傳統 decoder 的證據僅限小型 qLDPC code，scale 到更大 code 需更複雜架構/訓練。此為純 NN（transformer）非 neural BP，作為『純無結構大網在 BB-144 尺寸尚未穩定勝 BP+OSD』的旁證。",
+    "confidence": "medium",
+    "sources": [
+     "https://quantum-journal.org/papers/q-2026-06-30-2149/"
+    ],
+    "evidence": "單一 primary source（Quantum 期刊、已同行評審）、3-0。與本 repo 對照：我方 BB-144 Cascade v7 於 p=0.002 勝 BP+OSD 8.8×（reports/bb144_iter7_table.md），與此文『純 NN 在 BB-144 較差』形成有利對比，凸顯 Cascade 結果之非平凡性——惟架構/訓練不同，非同類重現。",
+    "vote": "3-0",
+    "mergedFrom": "confirmed[8][9][10] ([[72]] 5x lower; [[144]] worse; ML wins only on small codes)"
+   },
+   {
+    "id": "nbp-d-relaybp",
+    "subQuestion": "(d) 2024–2026 最新 BB-era BP 改良（Relay-BP）",
+    "claim": "【d 最新 / a 準確率上限】Relay-BP 是純 message-passing decoder（不接 OSD），在 circuit noise 下於 bivariate-bicycle codes 顯著勝過 BP+OSD+CS-10、在 surface code 上與 min-weight matching 相當；在 [[144,12,12]] gross (BB) code、p=3×10⁻³ 下比 BP+OSD+CS-10 低約 1–2 個數量級（[[288,12,18]] two-gross code 改善更大）。但 Relay-BP 不是 learned/neural decoder：其 disordered memory strengths 由 gradient-free 超參優化決定、每 relay leg 從均勻區間隨機取樣，無梯度訓練、無 NN、全文無任何 ML decoder 比較。",
+    "confidence": "medium",
+    "sources": [
+     "https://arxiv.org/abs/2506.01779"
+    ],
+    "evidence": "單一 primary source、3-0（另『不是 neural』之 claim 2-0）。與 Astra（2408.07038）獨立呼應『不接 OSD 的 message-passing 在 BB code 上未被 BP+OSD 封頂』——此跨來源呼應是戰略判定核心。preprint、性能自報。注意 [[144]] 對照組是 BP+OSD+CS-10（含 combination-sweep），與我方 min-weight circuit BP+OSD baseline 口徑不同，數字不可直接並列。",
+    "vote": "3-0",
+    "mergedFrom": "confirmed[17][18][19] (Relay-BP 勝 BP+OSD+CS-10 on BB; 非 neural; [[144]] p=3e-3 約 1-2 orders)"
+   },
+   {
+    "id": "nbp-b-transfer-within-family",
+    "subQuestion": "(b) 通用性：權重綁單一 Tanner graph 還是可轉移",
+    "claim": "【b 通用性】learned message-passing / neural-BP 的權重可在同一 code 家族內跨尺寸/距離轉移，但未跨家族：(i) Liu & Poulin——某一 code size 訓練的權重套到不同 size 仍提升效能（同 toric 家族，倚賴 lattice 對稱性的 weight sharing）；(ii) Astra——低 distance 訓練的 decoder 可外推解 surface code 到 d=25、BB code 到 d=34，機制是 Tanner graph 節點 degree 不隨 distance 改變，但每個仍是 per-distance 單一模型。尚無跨 code 家族的單一權重組。",
+    "confidence": "high",
+    "sources": [
+     "https://arxiv.org/abs/1811.07835",
+     "https://arxiv.org/abs/2408.07038"
+    ],
+    "evidence": "兩個獨立 primary source；within-family transfer 之核心 claim 皆 3-0。注意：Liu&Poulin 更強的『universal/transferable』措辭在 PRL 版核驗為 2-1（split），故『universal』一詞勿過度引用；穩健陳述為『同家族內跨尺寸/距離可轉移』。此為第一輪 survey『通用性限同家族內』結論在 neural-BP 軸上的獨立佐證。",
+    "vote": "3-0 (within-family transfer claims; 更強 universal 措辭 2-1)",
+    "mergedFrom": "confirmed[2][13][16]"
+   },
+   {
+    "id": "nbp-b-degree-binding",
+    "subQuestion": "(b) 通用性 / (c) min-sum 定點化約束",
+    "claim": "【b 通用性 / c 定點化】固定 scaling factor（典型 offline-optimized / learned scaled min-sum 的產物）本質綁定 check-node degree：讓 scaled min-sum 追上 BP 所需的 scaling 隨 CN degree 遞減，故為某一 degree 優化的固定 scaling 在 degree 改變時 penalty 遞增。直接支持『單一組學到的 min-sum 權重難以跨不同 Tanner graph（不同 code）轉移』，且是 min-sum 定點化的核心設計約束。",
+    "confidence": "medium",
+    "sources": [
+     "https://arxiv.org/html/2605.10433"
+    ],
+    "evidence": "單一 primary source、2-1 split vote（故 medium）。隔離：同源另一 claim『SAGMS 為非學習式、免訓練替代 learned scaling』核驗為 1-2（refuted[1]），不得當支持證據。",
+    "vote": "2-1",
+    "mergedFrom": "confirmed[14] (scaling required to match BP decreases with CN degree)"
+   },
+   {
+    "id": "nbp-c-fpga-gap",
+    "subQuestion": "(c) FPGA/ASIC latency/資源、min-sum 定點化先例",
+    "claim": "【c 硬體，缺口陳述】本輪 neural-BP 核驗未產出任何 neural-BP 專屬的 FPGA/ASIC latency/資源實測數字；min-sum 定點化先例在本輪僅由 scaled-min-sum 的 CN-degree scaling 分析（2605.10433）間接觸及。message-passing decoder 的硬體實測仍以第一輪的非 NN（Riverlane Collision Clustering ASIC 240 ns/0.06 mm²/8 mW、Yale Helios UF 11.5 ns、Riverlane LCD <1 µs 到 d=17）與 surface-code NN（SUSTech 550 ns、Overwater <90 ns）為準——見本檔第一輪 findings。",
+    "confidence": "n/a (gap statement)",
+    "sources": [
+     "https://arxiv.org/html/2605.10433"
+    ],
+    "evidence": "缺口陳述（在本輪已核驗集合內為空）。『BP/min-sum 於 FPGA/ASIC 為成熟主流』屬一般認知，未在本輪逐篇核驗，故不引具體數字；若需 neural-BP 硬體代價數字，須再補一輪硬體文獻。",
+    "vote": "n/a",
+    "mergedFrom": "本輪無 neural-BP 硬體 confirmed claim"
+   }
+  ],
+  "strategicVerdict": "戰略判定：neural-BP（廣義——learned / message-passing BP，不接 OSD）對用戶想法而言是【低風險 fallback，不是準確率死路】，但有條件。核心（high，兩個獨立工作交叉佐證）：不接 OSD 的 message-passing decoder 在 BB code 上未被 BP+OSD 封頂——(i) Astra（learned GNN message passing，不接任何 post-processing）在 surface 與 BB code threshold 與 LER 皆勝 BP+OSD（code-capacity，2408.07038，3-0）；(ii) Relay-BP（純 message passing，不接 OSD）於 BB code circuit-level noise 顯著勝 BP+OSD+CS-10，[[144,12,12]] 於 p=3×10⁻³ 約低 1–2 個數量級（2506.01779，3-0）。條件與殘餘風險：(1) 天真的『可訓練權重 neural min-sum』在 bicycle 家族失敗（2308.08208 作者略去 GB code 的 NBP 結果、僅 toric 有效，3-0），故 fallback 必須走 GNN-式 message passing（SAGU/Astra/QuBA）或 Relay-BP-式 disordered memory，而非天真 neural min-sum；(2) 準確率風險大致退場後，殘餘風險落在通用性軸——學到的權重綁 Tanner-graph degree（fixed scaling 隨 CN degree penalty 遞增，2605.10433，2-1；各 decoder 為 per-distance 單模型），跨 code 家族的單一權重組仍未被示範，與第一輪 survey 的核心缺口相同。(3) 純 NN（非 BP）在 BB-144 尺寸尚未穩定勝 BP+OSD（recurrent transformer 在 [[144,12,12]] 反而較差，q-2026-06-30-2149，3-0），提醒『準確率保險』要靠 message-passing/BP 結構先驗、而非無結構大網。confidence：核心『非死路』= high（Astra + Relay-BP 兩個獨立來源）；操作性限定條件 = medium。",
+  "parityCheckArgument": "『parity check 從權重搬到輸入』論證的 neural-BP 佐證：Astra 之所以能把低 distance 學到的 decoder 外推到 d=25/d=34，正因『Tanner graph 節點 degree 不隨 distance 改變』——可轉移的是 message-passing 函數（綁在正規化的局部結構/邊型別上的權重），而 code-specific 的 parity 結構經由圖/degree 進入 = 輸入。反向佐證：scaled-min-sum 顯示把 parity 結構留在固定權重（固定 scaling 綁 CN degree）會隨 code 改變而 penalty 遞增（2605.10433）。與第一輪 findings 一致：SAGU（parity 進輸入→一個 NN 解多 BB code）= 最直接正例；Lange detector-graph（圖輸入 = code-agnostic 表示法）= 表示法；Transformer-QEC（權重綁 code、僅跨 distance 且需 fine-tune）= 反例。",
+  "isolationNote": "以下 refuted[] 3 條為 3-vote 未通過之宣稱，隔離記錄、不得當支持證據：[0] larger GB codes 上 OBP4 不勝 MS+OSD（0-3）；[1] SAGMS 為非學習式免訓練替代（1-2）；[2] Astra 在 BB 上比 BP『數個數量級』但無單點 LER 數值（0-3）。unverified[] 1 條（Gong 的 test-code 細節，三票全 errored）亦不引用。",
+  "caveats": "(1) preprint 比例高：Astra(2408.07038)、Relay-BP(2506.01779)、scaled-min-sum(2605.10433) 為 preprint，性能自報、無獨立重現。(2) 噪聲模型不一：Astra/Miao/Liu&Poulin/OBP4 之勝 BP+OSD 多在 code-capacity（depolarizing）；僅 Relay-BP 與 recurrent transformer 為 circuit-level。跨口徑比較須標明。(3) baseline 口徑不一：Relay-BP 對照 BP+OSD+CS-10；Miao/OBP4 對照 min-sum+OSD-10；我方 Cascade 對照 min-weight circuit BP+OSD。三者不可直接並列數字。(4) 19 sources 中僅 9 個 URL 產出已核驗 confirmed claims；其餘因 budget（94→25）未及核驗，未寫入結論。(5) 檢索截至 2026-07；neural-BP/qLDPC 領域月更快。",
+  "confirmed": [
+   {
+    "claim": "Liu & Poulin 的 neural BP (NBP) 在 toric code、[[256,32]] quantum bicycle code、[[129,28]] hypergraph-product code 上,decoding accuracy 相對『未訓練的 BP』最多改善 3 個數量級(hypergraph-product code 僅約 1 個數量級)——比較基準是 plain BP,不是 BP+OSD,也沒有給出絕對 logical error rate 的文字數值(僅圖示)。",
+    "source": "https://arxiv.org/abs/1811.07835",
+    "quote": "Decoding accuracy improves up to 3 orders of magnitude compared with the untrained BP decoder, and the improvement is even more substantial when we ignore detected but uncorrected errors. [...] Training the NBP decoder for a quantum bicycle code with N=256, K=32 [...] improves the accuracy up to 3 orders of magnitude (Fig. 5a). [...hypergraph-product code:] up to one order of magnitude (Fig. 5b).",
+    "vote": "3-0"
+   },
+   {
+    "claim": "全文完全沒有與 OSD(ordered statistics decoding)後處理的比較;MWPM 只被提及一次,作為 flagged failures 可交給更貴 decoder 重解的混合策略選項,並非 benchmark 對象。因此本文無法提供『neural BP 無 OSD vs BP+OSD 的差距數字』。",
+    "source": "https://arxiv.org/abs/1811.07835",
+    "quote": "It should be noted that flagged failures are benign because they can be re-decoded, using either a more accurate but more expensive decoder (e.g. the minimum-weight perfect matching Edmonds (1965)) or a higher layer of code for erasure errors.",
+    "vote": "3-0"
+   },
+   {
+    "claim": "權重可轉移性:作者觀察到在某一 code size 上訓練的權重,套用到『不同 size』的 code 仍能提升效能,並稱此學習為 universal/transferable——但示範範圍是同一 code family 內的不同 size(toric code 的 lattice translation symmetry 也被用來做 weight sharing),不是跨不同 code family 的一組共用參數。",
+    "source": "https://arxiv.org/abs/1811.07835",
+    "quote": "We also observe that weights trained on one code size can also increase the performance when applied to codes of different sizes, which implies that the learning is universal/transferable (see SM for more details).",
+    "vote": "3-0"
+   },
+   {
+    "claim": "此論文（Miao et al., KIT）主張其 neural BP（NBP）decoder 搭配 overcomplete check matrix、且完全不用 OSD 後處理，在 generalized bicycle (GB) codes（[[48,6,8]]、[[46,2,9]] 等）的 code-capacity depolarizing channel 上，FER 優於 BP+OSD 參考曲線——這是「neural BP 不接 OSD 能否追上 BP+OSD」問題的一個正面（但限於小型 GB code、非 circuit-level noise）證據。",
+    "source": "https://arxiv.org/abs/2212.10245",
+    "quote": "After training, our NBP decoder outperforms the reference results, with the additional advantage of a very small number of required decoding iterations.",
+    "vote": "3-0"
+   },
+   {
+    "claim": "其比較基準（reference）確為 BP+OSD 系：取自 Panteleev–Kalachev（引文 [7]）的 normalized min-sum with layered scheduling 加 OSD 後處理之公開結果，因此該論文的『勝過 reference』即『NBP 無 OSD 勝過 min-sum+OSD』的直接量化比較。",
+    "source": "https://arxiv.org/abs/2212.10245",
+    "quote": "We compare the FER results with the reference results taken from [7] where normalized min-sum decoding with layered scheduling is followed by an OSD post-processing step.",
+    "vote": "3-0"
+   },
+   {
+    "claim": "即使不加 neural 權重，僅用 overcomplete check matrix 的傳統 BP 就已與 BP+OSD reference 相當——意味此文中 neural 學習只是在 overcomplete-matrix 技巧之上的額外增益，而非達到 OSD 等級性能的主因。",
+    "source": "https://arxiv.org/abs/2212.10245",
+    "quote": "However, BP decoding using the overcomplete check matrix performs comparably to the reference. ... The reference outperforms the original BP decoding which suffers from a higher error floor.",
+    "vote": "3-0"
+   },
+   {
+    "claim": "On the small GB codes ([[48,6,8]] GB-A3 and [[46,2,9]] GB-A4), the non-neural OBP4 decoder (quaternary BP on an overcomplete check matrix, only 6 iterations, no OSD and no learned weights) outperforms the BP+OSD-class reference decoder (32 iterations of serial normalized min-sum + OSD-10 from Panteleev-Kalachev [11]) in frame error rate — i.e., in these cases a BP variant without OSD post-processing beats BP+OSD, but the mechanism is the overcomplete check matrix, not neural training.",
+    "source": "https://arxiv.org/abs/2308.08208",
+    "quote": "An improvement in post-decoding FER by more than an order of magnitude is observed using the OBP4 decoder with only 6 decoding iterations, especially when the physical error rate is small. The proposed OBP4 decoder also outperforms the reference decoder from [11], which uses 32 iterations of serial normalized MS decoding concatenated with OSD-10 post-processing.",
+    "vote": "3-0"
+   },
+   {
+    "claim": "Neural BP training itself FAILED to deliver useful gains on the bicycle-family (GB) codes — the authors omit NBP results for GB codes entirely; all GB-code gains in the paper come from the non-learned overcomplete-matrix technique, and NBP gains are only shown for toric codes. This directly bears on whether neural-BP is an 'accuracy dead end' on bicycle-type qLDPC codes.",
+    "source": "https://arxiv.org/abs/2308.08208",
+    "quote": "However, the training of NBP decoding for GB code is not as successful as for toric codes, and thus, we omit results.",
+    "vote": "3-0"
+   },
+   {
+    "claim": "在 [[72,12,6]] BB code、circuit-level noise、physical error rate p=0.1% 下,該 recurrent transformer 神經網路 decoder 的 logical error rate 比 BP+OSD 低近 5 倍——證明 ML decoder 在小型 qLDPC code 上可勝過 BP+OSD(注意:此 decoder 是 transformer,不是 neural BP)。",
+    "source": "https://quantum-journal.org/papers/q-2026-06-30-2149/",
+    "quote": "For the [[72,12,6]] BB code, at a physical error rate of p=0.1%, our model achieves logical error rates almost 5 times lower than belief propagation with ordered statistics decoding (BP-OSD), and roughly 5 times larger than a most-likely error decoder.",
+    "vote": "3-0"
+   },
+   {
+    "claim": "在 [[144,12,12]] BB code(BB-144)上,該 ML decoder 的 logical error rate 比 BP+OSD 差(僅保留速度優勢)——直接顯示純 NN 路線在 BB-144 這個尺寸的準確率尚未穩定超越 BP+OSD。",
+    "source": "https://quantum-journal.org/papers/q-2026-06-30-2149/",
+    "quote": "On the [[144,12,12]] BB code, our model obtains worse logical error rates but maintains the speed advantage.",
+    "vote": "3-0"
+   },
+   {
+    "claim": "作者結論:ML decoder 勝過傳統 decoder 的證據目前僅限小型 qLDPC code;要 scale 到更大的 code(如 BB-144 以上)需要更複雜的架構或訓練程序——對「neural 路線是否為準確率死路」的戰略判斷是關鍵反方/限制證據。",
+    "source": "https://quantum-journal.org/papers/q-2026-06-30-2149/",
+    "quote": "These results provide initial evidence that machine learning decoders can out-perform conventional decoders on small QLDPC codes, but suggest more complex architectures and/or training procedures are necessary to scale to larger code sizes.",
+    "vote": "3-0"
+   },
+   {
+    "claim": "Liu & Poulin 的 neural BP decoder(在 BP message-passing 中加入 trainable weights/biases,無任何 OSD 後處理)在 toric code 上將解碼準確率相對於未訓練的 plain BP 提升最多 3 個數量級;全文的 baseline 是 untrained BP,完全沒有出現 BP+OSD 比較,因此本文無法提供「neural BP vs BP+OSD 差距」的數字。",
+    "source": "https://link.aps.org/doi/10.1103/PhysRevLett.122.200501",
+    "quote": "Decoding accuracy improves up to 3 orders of magnitude compared with the untrained BP decoder, and the improvement is even more substantial when we ignore detected but uncorrected errors.",
+    "vote": "3-0"
+   },
+   {
+    "claim": "在 [[256,32]] quantum bicycle code(rate 0.125)上,訓練後的 neural BP 相對 plain BP 準確率提升最多 3 個數量級——這是與 BB code 血緣最近的測試(bicycle 構造),顯示 learned BP 在高 rate qLDPC 上有大幅但非量化到 logical error rate 絕對值層級的增益。",
+    "source": "https://link.aps.org/doi/10.1103/PhysRevLett.122.200501",
+    "quote": "Training the NBP decoder for a quantum bicycle code with N=256, K=32 and ∑iAi=8 improves the accuracy up to 3 orders of magnitude (Fig. 5a).",
+    "vote": "3-0"
+   },
+   {
+    "claim": "論文明確主張學到的權重可跨 code size 轉移:在某一 code size 上訓練的 weights 用到不同 size 的 code 上仍能提升效能,作者稱此學習為 universal/transferable——這是「一組學到的參數用於多個 code」的最早示範,但僅限同一家族(toric)內不同尺寸,且倚賴 lattice 對稱性的 weight sharing,不是跨任意 Tanner graph。",
+    "source": "https://link.aps.org/doi/10.1103/PhysRevLett.122.200501",
+    "quote": "We also observe that weights trained on one code size can also increase the performance when applied to codes of different sizes, which implies that the learning is universal/transferable (see SM for more details).",
+    "vote": "2-1"
+   },
+   {
+    "claim": "固定 scaling factor(即典型 learned/offline-optimized scaled min-sum 產出的參數)本質上綁定 check-node degree:讓 SMS 追上 BP 所需的 scaling 隨 CN degree 遞減,因此為某一 degree 優化的固定 scaling,在 degree 改變時 penalty 遞增。這直接支持「單一組學到的 min-sum 權重難以跨不同 Tanner graph(不同 code)轉移」的論點,與研究問題 (2) 通用性直接相關。",
+    "source": "https://arxiv.org/html/2605.10433",
+    "quote": "We show that the scaling factor required for SMS to match belief propagation decreases with the CN degree, so any fixed scaling optimized for one degree incurs into a growing penalty as the CN degree varies.",
+    "vote": "2-1"
+   },
+   {
+    "claim": "Astra（GNN message-passing decoder）在不使用任何 OSD 後處理的情況下，宣稱在 surface code（訓練至 d=11）與 bivariate bicycle (BB) codes（訓練至 d=18）上達到比 BP+OSD 更高的 threshold 與更低的 logical error rate——直接回答「neural BP 不接 OSD 的準確率上限」問題；正文並給出 surface code threshold 約 17%（Astra）對約 14%（BP+OSD），但這是 code-capacity noise 下的數字。",
+    "source": "https://arxiv.org/abs/2408.07038",
+    "quote": "Without using any post-processing, Astra achieves higher thresholds and better logical error rates when compared to BP+OSD, both for surface codes trained up to distance 11 and Bivariate Bicycle (BB) codes trained up to distance 18.",
+    "vote": "3-0"
+   },
+   {
+    "claim": "學到的 message-passing 權重可跨 distance 轉移（在同一 code family 內）：用低 distance 訓練的 decoder 可直接解 surface code 到 d=25、BB code 到 d=34，機制是 Tanner graph 節點 degree 不隨 distance 改變（正文：\"The degree of the nodes does not change with increasing QECC distance. Once learnt, the functions can be reused for interpolated and extrapolated decoding.\"）；但訓練仍是 per-distance 單一模型（\"We train a single model for a given code distance and multiple physical error rates p\"），非跨 code family 的單一權重組。",
+    "source": "https://arxiv.org/abs/2408.07038",
+    "quote": "we can successfully extrapolate the decoding functionality: we decode high distances (surface code up to distance 25 and BB code up to distance 34) by using decoders trained on lower distances",
+    "vote": "3-0"
+   },
+   {
+    "claim": "Relay-BP is a pure message-passing decoder (no OSD post-processing) that significantly outperforms BP+OSD+CS-10 on bivariate-bicycle codes under circuit noise, and is comparable to min-weight matching on surface codes — demonstrating that BP-class decoders without OSD are not accuracy-capped below BP+OSD on BB codes.",
+    "source": "https://arxiv.org/abs/2506.01779",
+    "quote": "Relay-BP achieves high accuracy across circuit-noise decoding problems: significantly outperforming BP+OSD+CS-10 for bivariate-bicycle codes and comparable to min-weight-matching for surface codes.",
+    "vote": "3-0"
+   },
+   {
+    "claim": "Relay-BP is NOT a learned/neural decoder: its disordered memory strengths are set by gradient-free hyperparameter optimization and then randomly sampled per relay leg from a uniform interval — there is no gradient training, no neural network, and the paper contains no comparison to any machine-learning decoder.",
+    "source": "https://arxiv.org/abs/2506.01779",
+    "quote": "Intervals marked with circles in the heatmaps were obtained via a gradient-free optimization and are used for all subsequent simulations. ... each γⱼ is drawn independently and uniformly from a common range [γ_center−γ_width/2, γ_center+γ_width/2].",
+    "vote": "2-0"
+   },
+   {
+    "claim": "On the [[144,12,12]] gross (BB) code at physical error rate p=3×10⁻³, Relay-BP variants achieve approximately one to two orders of magnitude lower logical error rate than BP+OSD+CS-10, with even larger improvements on the [[288,12,18]] two-gross code.",
+    "source": "https://arxiv.org/abs/2506.01779",
+    "quote": "At p=3×10−3, they yield improvements of approximately one and two orders of magnitude, respectively. ... For the two-gross code at the same p, we see even larger improvements for Relay-BP-5",
+    "vote": "3-0"
+   },
+   {
+    "claim": "Gong-Cammerer-Renes 的 BP+GNN decoder 只宣稱勝過 random perturbation、enhanced feedback、augmentation 三種 post-processing,並未宣稱勝過 OSD——BP+OSD(NMS+OSD0)僅作為 Fig.4 的對照曲線;亦即這篇 learned-BP 變體沒有展示「不接 OSD 而達到或超越 BP+OSD」的準確率。",
+    "source": "https://arxiv.org/abs/2310.17758",
+    "quote": "We compare the error rate performance of the proposed decoder against various post-processing methods such as random perturbation, enhanced feedback, augmentation, and ordered-statistics decoding (OSD) and show that a carefully designed training process lowers the error-floor significantly. As a result, our proposed decoder outperforms the former three methods using significantly fewer post-processing attempts.",
+    "vote": "2-0"
+   }
+  ],
+  "refuted": [
+   {
+    "claim": "On the larger GB codes ([[254,28,d]] GB-A1 and [[126,28,8]] GB-A2), OBP4 does NOT beat the MS+OSD reference — it improves over plain BP4 but retains a gap to serial normalized MS + OSD-10, showing the no-OSD approach loses its edge when few redundant low-weight checks exist.",
+    "vote": "0-3",
+    "source": "https://arxiv.org/abs/2308.08208"
+   },
+   {
+    "claim": "SAGMS(syndrome adaptive gain Min-Sum)是「非學習式」的 min-sum gain 自適應法:gain 由 unsatisfied stabilizers 的比例線上決定,不需任何 per-code 或 per-noise-level 的離線優化(含訓練)——證明跨 code 的 adaptivity 不一定要靠 neural/learned 權重,可用 syndrome 統計量的解析式規則達成。對戰略問題的含意:learned scaling(neural min-sum 學到的 per-edge/per-iteration 權重)所解的問題,已有 heuristic 免訓練替代。",
+    "vote": "1-2",
+    "source": "https://arxiv.org/html/2605.10433"
+   },
+   {
+    "claim": "在 BB codes 上，Astra（含或不含 OSD）宣稱比 BP（含或不含 OSD）的 logical error rate 低「數個數量級」——這是與 BB-144 Cascade 對 BP+OSD 勝差（8.8x）直接可比的競品數字，但摘要與正文未給出單點的明確 LER 數值（數值只在圖 1、2、5–6 中）。",
+    "vote": "0-3",
+    "source": "https://arxiv.org/abs/2408.07038"
+   }
+  ],
+  "unverified": [
+   {
+    "claim": "測試碼為 Panteleev–Kalachev 的 generalized bicycle codes [[1270,28,≤46]] 與 [[882,24,≤24]](depolarizing channel、quaternary BP4);feedback GNN 三次 attempt(共 64+16×3=112 次 flooding BP iteration)即勝過 random perturbation 與 enhanced feedback 各重複 100 次的結果。",
+    "erroredVotes": 3,
+    "validVotes": 0,
+    "source": "https://arxiv.org/abs/2310.17758"
+   }
+  ],
+  "sources": [
+   {
+    "url": "https://arxiv.org/abs/1811.07835",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://arxiv.org/abs/2212.10245",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://arxiv.org/abs/2308.08208",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://quantum-journal.org/papers/q-2026-06-30-2149/",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://link.aps.org/doi/10.1103/PhysRevLett.122.200501",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://arxiv.org/html/2605.10433",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://arxiv.org/abs/2408.07038",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://arxiv.org/abs/2506.01779",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://arxiv.org/abs/2310.17758",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://arxiv.org/abs/2507.00254",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://arxiv.org/abs/2605.14170",
+    "quality": "primary",
+    "claimCount": 4
+   },
+   {
+    "url": "https://arxiv.org/abs/2603.21730",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://arxiv.org/html/2510.06257",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://arxiv.org/abs/2510.21600",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://arxiv.org/abs/2511.21660",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://link.springer.com/article/10.1140/epjqt/s40507-025-00446-y",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://arxiv.org/abs/2605.04892",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://quantum-journal.org/papers/q-2026-04-16-2071/",
+    "quality": "primary",
+    "claimCount": 5
+   },
+   {
+    "url": "https://par.nsf.gov/servlets/purl/10318683",
+    "quality": "primary",
+    "claimCount": 5
+   }
+  ],
+  "stats": {
+   "angles": 5,
+   "sources": 19,
+   "claims": 94,
+   "verified": 25,
+   "confirmed": 21,
+   "killed": 3,
+   "unverified": 1,
+   "afterSynthesis": 0
+  }
+ }
+}
