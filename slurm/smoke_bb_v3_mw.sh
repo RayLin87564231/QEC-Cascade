@@ -22,7 +22,7 @@
 
 set -euo pipefail
 
-WORKDIR="/work/leo07010/Ray/QEC/cascade"
+WORKDIR="/work/u2467370/QEC/cascade"
 cd "$WORKDIR"
 mkdir -p logs
 
@@ -62,7 +62,7 @@ python scripts/14_train_bb_v3.py \
     --final-shots 20000 \
     --p-eval 0.003 \
     --no-resume \
-    --out /work/leo07010/Ray/QEC/cascade/.smoke_ckpt_v3_mw \
+    --out "${WORKDIR}/.smoke_ckpt_v3_mw" \
     --tag "$TAG"
 
 echo "========================================"

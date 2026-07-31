@@ -48,7 +48,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--eval-every", type=int, default=1000)
     p.add_argument("--final-shots", type=int, default=200000)
     p.add_argument("--out", type=Path,
-                   default=Path("/home/leo07010/Ray/QEC/cascade/checkpoints"))
+                   default=Path(__file__).resolve().parents[1] / "checkpoints")
     p.add_argument("--tag", type=str, default="v2")
     p.add_argument("--seed", type=int, default=0)
     return p.parse_args()

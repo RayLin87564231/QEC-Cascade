@@ -27,7 +27,7 @@
 
 set -euo pipefail
 
-WORKDIR="/work/leo07010/Ray/QEC/cascade"
+WORKDIR="/work/u2467370/QEC/cascade"
 cd "$WORKDIR"
 mkdir -p logs
 

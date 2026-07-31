@@ -37,7 +37,7 @@ def parse_args() -> argparse.Namespace:
     p.add_argument("--final-shots", type=int, default=20000,
                    help="shots per p in final Cascade-vs-MWPM eval")
     p.add_argument("--out", type=Path,
-                   default=Path("/home/leo07010/Ray/QEC/cascade/checkpoints"))
+                   default=Path(__file__).resolve().parents[1] / "checkpoints")
     p.add_argument("--seed", type=int, default=0)
     return p.parse_args()
 
