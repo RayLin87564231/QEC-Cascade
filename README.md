@@ -402,14 +402,18 @@ handling (`test_model.py`), and the P_block → P_L conversion and fits
 - Λ fits use only d = 5, 7, 9. An earlier d = 11 retrain (in `results/archive/`)
   underperformed MWPM and is not part of any headline claim.
 
-**Environment coupling.** SLURM scripts hard-code the cluster's account, partition,
-and absolute `WORKDIR`. After an account migration, the BB scripts were fixed
-(commit `b9fbe6f`) but **18 files still point at the pre-migration path
-`/work/leo07010/Ray/QEC/cascade`** — including `slurm/train_surface_v5.sh`,
-`slurm/eval_surface_v5.sh`, `scripts/11_train_surface.py`,
-`scripts/12_train_surface_v2.py`. The surface results in this repo were produced
-*before* the migration, so they are valid, but re-running the surface track today
-requires fixing those paths first. Grep for `leo07010` to find them all.
+**Environment coupling.** SLURM scripts hard-code the cluster's account
+(`GOV114009`), partition, and an absolute `WORKDIR` — running anywhere else means
+editing those three things. The account migration of 2026-07-08 left the
+surface-track and older BB scripts pointing at the pre-migration path; they were
+all repointed in commit `d78e0cf`, so every script in `slurm/` and `scripts/` now
+resolves under the current account. Training scripts take their checkpoint
+directory from `Path(__file__).parents[1] / "checkpoints"`, i.e. relative to the
+repo, so a future move only touches `WORKDIR` in `slurm/`.
+
+Historical documents deliberately keep the old paths: `HANDOFF_TO_NEW_ACCOUNT.md`
+and the `reports/iteration_*.md` lab notes record where each run actually
+executed at the time, and are not rewritten.
 
 **Not committed** (by `.gitignore`): `.venv/`, `checkpoints/` (~1.2 GB),
 `logs/`, `external/`. Results, figures and reports are committed, so every
